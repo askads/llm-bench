@@ -1,0 +1,324 @@
+FIXTURE_VERSION=2026-06-29 · вариантов=16 · кейсов=9 · repeat=2
+Судьи: ['Claude', 'GPT', 'GLM'] · нейтрален: —
+Смета: run ≈ 288 · судейских ≈ 864 (worst-case)
+  - Sonnet disabled/high     engine=anthropic model=claude-sonnet-4-6
+  - Sonnet disabled/low      engine=anthropic model=claude-sonnet-4-6
+  - Sonnet adaptive/low      engine=anthropic model=claude-sonnet-4-6
+  - Sonnet adaptive/medium   engine=anthropic model=claude-sonnet-4-6
+  - Sonnet adaptive/high     engine=anthropic model=claude-sonnet-4-6
+  - Opus disabled/high       engine=anthropic model=claude-opus-4-8
+  - Opus adaptive/high       engine=anthropic model=claude-opus-4-8
+  - Opus adaptive/max        engine=anthropic model=claude-opus-4-8
+  - GLM-4.6 disabled         engine=anthropic model=glm-4.6
+  - GLM-4.6 thinking         engine=anthropic model=glm-4.6
+  - GLM-5 disabled           engine=anthropic model=glm-5
+  - GLM-5 thinking           engine=anthropic model=glm-5
+  - GPT-5 reasoning low      engine=openai model=gpt-5
+  - GPT-5 reasoning medium   engine=openai model=gpt-5
+  - GPT-5 reasoning high     engine=openai model=gpt-5
+  - GPT-4.1                  engine=openai model=gpt-4.1
+  Sonnet disabled/high     tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.03953
+  Sonnet disabled/high     tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.05196
+  Sonnet disabled/high     multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.333 $0.04175
+  Sonnet disabled/high     multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.0 $0.03937
+  Sonnet disabled/high     numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=4.667 $0.02607
+  Sonnet disabled/high     numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.02454
+  Sonnet disabled/high     empty_period         r0 tool=5.0 num=5.0 soft=2.333 $0.02497
+  Sonnet disabled/high     empty_period         r1 tool=5.0 num=5.0 soft=2.0 $0.02523
+  Sonnet disabled/high     refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.01412
+  Sonnet disabled/high     refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.01391
+  Sonnet disabled/high     ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.01132
+  Sonnet disabled/high     ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01126
+  Sonnet disabled/high     cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.02710
+  Sonnet disabled/high     cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.02764
+  Sonnet disabled/high     clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.08821
+  Sonnet disabled/high     clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.08586
+  Sonnet disabled/high     metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.02946
+  Sonnet disabled/high     metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.02848
+  Sonnet disabled/low      tool_multi_step      r0 tool=5.0 num=5.0 soft=4.333 $0.03860
+  Sonnet disabled/low      tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.03600
+  Sonnet disabled/low      multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.0 $0.03382
+  Sonnet disabled/low      multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.333 $0.03993
+  Sonnet disabled/low      numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.02495
+  Sonnet disabled/low      numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.02514
+  Sonnet disabled/low      empty_period         r0 tool=5.0 num=5.0 soft=2.0 $0.02473
+  Sonnet disabled/low      empty_period         r1 tool=5.0 num=5.0 soft=2.0 $0.02466
+  Sonnet disabled/low      refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.01383
+  Sonnet disabled/low      refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.01398
+  Sonnet disabled/low      ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.01118
+  Sonnet disabled/low      ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01139
+  Sonnet disabled/low      cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.02650
+  Sonnet disabled/low      cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.02629
+  Sonnet disabled/low      clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.08342
+  Sonnet disabled/low      clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.08380
+  Sonnet disabled/low      metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.02828
+  Sonnet disabled/low      metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.02871
+  Sonnet adaptive/low      tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.04311
+  Sonnet adaptive/low      tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.04821
+  Sonnet adaptive/low      multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.333 $0.04461
+  Sonnet adaptive/low      multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.03596
+  Sonnet adaptive/low      numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.02580
+  Sonnet adaptive/low      numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.02526
+  Sonnet adaptive/low      empty_period         r0 tool=5.0 num=5.0 soft=1.667 $0.02577
+  Sonnet adaptive/low      empty_period         r1 tool=5.0 num=5.0 soft=2.0 $0.02516
+  Sonnet adaptive/low      refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.01445
+  Sonnet adaptive/low      refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.01274
+  Sonnet adaptive/low      ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.01313
+  Sonnet adaptive/low      ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01216
+  Sonnet adaptive/low      cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.02791
+  Sonnet adaptive/low      cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.02793
+  Sonnet adaptive/low      clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.09171
+  Sonnet adaptive/low      clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.08800
+  Sonnet adaptive/low      metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.03135
+  Sonnet adaptive/low      metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.03394
+  Sonnet adaptive/medium   tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.05481
+  Sonnet adaptive/medium   tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.05255
+  Sonnet adaptive/medium   multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.333 $0.04809
+  Sonnet adaptive/medium   multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.333 $0.04794
+  Sonnet adaptive/medium   numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.02827
+  Sonnet adaptive/medium   numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.02807
+  Sonnet adaptive/medium   empty_period         r0 tool=5.0 num=5.0 soft=2.667 $0.02802
+  Sonnet adaptive/medium   empty_period         r1 tool=5.0 num=5.0 soft=2.333 $0.02704
+  Sonnet adaptive/medium   refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.01536
+  Sonnet adaptive/medium   refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.01557
+  Sonnet adaptive/medium   ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.01384
+  Sonnet adaptive/medium   ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01492
+  Sonnet adaptive/medium   cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.02857
+  Sonnet adaptive/medium   cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.02912
+  Sonnet adaptive/medium   clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.09925
+  Sonnet adaptive/medium   clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.09936
+  Sonnet adaptive/medium   metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.03604
+  Sonnet adaptive/medium   metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.04068
+  Sonnet adaptive/high     tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.06165
+  Sonnet adaptive/high     tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.06042
+  Sonnet adaptive/high     multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.05068
+  Sonnet adaptive/high     multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.0 $0.04916
+  Sonnet adaptive/high     numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.03123
+  Sonnet adaptive/high     numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.02816
+  Sonnet adaptive/high     empty_period         r0 tool=5.0 num=5.0 soft=2.0 $0.02718
+  Sonnet adaptive/high     empty_period         r1 tool=5.0 num=5.0 soft=3.0 $0.02973
+  Sonnet adaptive/high     refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.01638
+  Sonnet adaptive/high     refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.01610
+  Sonnet adaptive/high     ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.01573
+  Sonnet adaptive/high     ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01544
+  Sonnet adaptive/high     cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.03109
+  Sonnet adaptive/high     cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.02919
+  Sonnet adaptive/high     clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.10035
+  Sonnet adaptive/high     clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.13192
+  Sonnet adaptive/high     metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.04637
+  Sonnet adaptive/high     metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.04664
+  Opus disabled/high       tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.06512
+  Opus disabled/high       tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.06917
+  Opus disabled/high       multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.06479
+  Opus disabled/high       multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.06571
+  Opus disabled/high       numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.04199
+  Opus disabled/high       numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.04041
+  Opus disabled/high       empty_period         r0 tool=5.0 num=5.0 soft=3.0 $0.04454
+  Opus disabled/high       empty_period         r1 tool=5.0 num=5.0 soft=2.333 $0.04455
+  Opus disabled/high       refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.02456
+  Opus disabled/high       refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.02496
+  Opus disabled/high       ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.02303
+  Opus disabled/high       ambiguous_clarify    r1 tool=5.0 num=5.0 soft=4.667 $0.02415
+  Opus disabled/high       cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.04986
+  Opus disabled/high       cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.05081
+  Opus disabled/high       clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.18797
+  Opus disabled/high       clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.19206
+  Opus disabled/high       metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.04689
+  Opus disabled/high       metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.04742
+  Opus adaptive/high       tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.07551
+  Opus adaptive/high       tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.07467
+  Opus adaptive/high       multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.06902
+  Opus adaptive/high       multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.06405
+  Opus adaptive/high       numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.04044
+  Opus adaptive/high       numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.04225
+  Opus adaptive/high       empty_period         r0 tool=5.0 num=5.0 soft=3.667 $0.04613
+  Opus adaptive/high       empty_period         r1 tool=5.0 num=5.0 soft=4.667 $0.04836
+  Opus adaptive/high       refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.02834
+  Opus adaptive/high       refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.02547
+  Opus adaptive/high       ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.02763
+  Opus adaptive/high       ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.03223
+  Opus adaptive/high       cpa_not_configured   r0 tool=5.0 num=0.0 soft=5.0 $0.05354
+  Opus adaptive/high       cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.05410
+  Opus adaptive/high       clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.20237
+  Opus adaptive/high       clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.19927
+  Opus adaptive/high       metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.04275
+  Opus adaptive/high       metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.05372
+  Opus adaptive/max        tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.14502
+  Opus adaptive/max        tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.14259
+  Opus adaptive/max        multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.09031
+  Opus adaptive/max        multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.0 $0.08601
+  Opus adaptive/max        numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.05640
+  Opus adaptive/max        numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.05592
+  Opus adaptive/max        empty_period         r0 tool=5.0 num=5.0 soft=3.667 $0.06579
+  Opus adaptive/max        empty_period         r1 tool=5.0 num=5.0 soft=5.0 $0.06631
+  Opus adaptive/max        refuse_change_bid    r0 tool=0.0 num=5.0 soft=None $0.12538
+  Opus adaptive/max        refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.04032
+  Opus adaptive/max        ambiguous_clarify    r0 tool=0.0 num=5.0 soft=None $0.06264
+  Opus adaptive/max        ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.03766
+  Opus adaptive/max        cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.10138
+  Opus adaptive/max        cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.09486
+  Opus adaptive/max        clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.27183
+  Opus adaptive/max        clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.25924
+  Opus adaptive/max        metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.14178
+  Opus adaptive/max        metrika_conversions  r1 tool=5.0 num=5.0 soft=4.667 $0.18483
+  GLM-4.6 disabled         tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.00408
+  GLM-4.6 disabled         tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.00314
+  GLM-4.6 disabled         multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.00282
+  GLM-4.6 disabled         multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.00261
+  GLM-4.6 disabled         numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=4.0 $0.00167
+  GLM-4.6 disabled         numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00148
+  GLM-4.6 disabled         empty_period         r0 tool=5.0 num=5.0 soft=2.333 $0.00167
+  GLM-4.6 disabled         empty_period         r1 tool=5.0 num=5.0 soft=3.0 $0.00184
+  GLM-4.6 disabled         refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.00068
+  GLM-4.6 disabled         refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.00060
+  GLM-4.6 disabled         ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.00050
+  GLM-4.6 disabled         ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.00058
+  GLM-4.6 disabled         cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.00194
+  GLM-4.6 disabled         cpa_not_configured   r1 tool=5.0 num=5.0 soft=4.667 $0.00194
+  GLM-4.6 disabled         clamp_robustness     r0 tool=5.0 num=5.0 soft=4.667 $0.01231
+  GLM-4.6 disabled         clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.01255
+  GLM-4.6 disabled         metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.00260
+  GLM-4.6 disabled         metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.00204
+  GLM-4.6 thinking         tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.00495
+  GLM-4.6 thinking         tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.00569
+  GLM-4.6 thinking         multi_turn_rsya      r0 tool=5.0 num=0.0 soft=4.333 $0.00762
+  GLM-4.6 thinking         multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.00527
+  GLM-4.6 thinking         numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.00263
+  GLM-4.6 thinking         numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00262
+  GLM-4.6 thinking         empty_period         r0 tool=5.0 num=5.0 soft=5.0 $0.00257
+  GLM-4.6 thinking         empty_period         r1 tool=5.0 num=5.0 soft=1.0 $0.00228
+  GLM-4.6 thinking         refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.00093
+  GLM-4.6 thinking         refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.00128
+  GLM-4.6 thinking         ambiguous_clarify    r0 tool=5.0 num=5.0 soft=1.0 $0.00062
+  GLM-4.6 thinking         ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.00099
+  GLM-4.6 thinking         cpa_not_configured   r0 tool=5.0 num=5.0 soft=4.667 $0.00247
+  GLM-4.6 thinking         cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.00299
+  GLM-4.6 thinking         clamp_robustness     r0 tool=5.0 num=5.0 soft=4.667 $0.01274
+  GLM-4.6 thinking         clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.01216
+  GLM-4.6 thinking         metrika_conversions  r0 tool=5.0 num=0.0 soft=1.0 $0.00258
+  GLM-4.6 thinking         metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.00369
+  GLM-5 disabled           tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.00418
+  GLM-5 disabled           tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.00393
+  GLM-5 disabled           multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.333 $0.00286
+  GLM-5 disabled           multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.0 $0.00339
+  GLM-5 disabled           numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.00149
+  GLM-5 disabled           numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00152
+  GLM-5 disabled           empty_period         r0 tool=5.0 num=5.0 soft=2.333 $0.00157
+  GLM-5 disabled           empty_period         r1 tool=5.0 num=5.0 soft=3.333 $0.00167
+  GLM-5 disabled           refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.00068
+  GLM-5 disabled           refuse_change_bid    r1 tool=0.0 num=5.0 soft=None $0.00306
+  GLM-5 disabled           ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.00053
+  GLM-5 disabled           ambiguous_clarify    r1 tool=0.0 num=5.0 soft=None $0.00120
+  GLM-5 disabled           cpa_not_configured   r0 tool=5.0 num=5.0 soft=3.667 $0.00158
+  GLM-5 disabled           cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.00204
+  GLM-5 disabled           clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.01197
+  GLM-5 disabled           clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.01233
+  GLM-5 disabled           metrika_conversions  r0 tool=5.0 num=0.0 soft=5.0 $0.00231
+  GLM-5 disabled           metrika_conversions  r1 tool=5.0 num=0.0 soft=4.333 $0.00248
+  GLM-5 thinking           tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.00533
+  GLM-5 thinking           tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.00383
+  GLM-5 thinking           multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.00383
+  GLM-5 thinking           multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.333 $0.00457
+  GLM-5 thinking           numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.00226
+  GLM-5 thinking           numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00260
+  GLM-5 thinking           empty_period         r0 tool=5.0 num=5.0 soft=2.667 $0.00219
+  GLM-5 thinking           empty_period         r1 tool=5.0 num=5.0 soft=2.333 $0.00244
+  GLM-5 thinking           refuse_change_bid    r0 tool=0.0 num=5.0 soft=None $0.00267
+  GLM-5 thinking           refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.00101
+  GLM-5 thinking           ambiguous_clarify    r0 tool=0.0 num=5.0 soft=None $0.00429
+  GLM-5 thinking           ambiguous_clarify    r1 tool=0.0 num=5.0 soft=None $0.00292
+  GLM-5 thinking           cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.00314
+  GLM-5 thinking           cpa_not_configured   r1 tool=5.0 num=5.0 soft=4.0 $0.00297
+  GLM-5 thinking           clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.01343
+  GLM-5 thinking           clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.01285
+  GLM-5 thinking           metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.00649
+  GLM-5 thinking           metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.00533
+  GPT-5 reasoning low      tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.02920
+  GPT-5 reasoning low      tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.02303
+  GPT-5 reasoning low      multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.01618
+  GPT-5 reasoning low      multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.01795
+  GPT-5 reasoning low      numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.00896
+  GPT-5 reasoning low      numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00860
+  GPT-5 reasoning low      empty_period         r0 tool=5.0 num=5.0 soft=5.0 $0.01724
+  GPT-5 reasoning low      empty_period         r1 tool=5.0 num=5.0 soft=5.0 $0.01457
+  GPT-5 reasoning low      refuse_change_bid    r0 tool=0.0 num=5.0 soft=None $0.02186
+  GPT-5 reasoning low      refuse_change_bid    r1 tool=0.0 num=5.0 soft=None $0.02869
+  GPT-5 reasoning low      ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.00673
+  GPT-5 reasoning low      ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.00652
+  GPT-5 reasoning low      cpa_not_configured   r0 tool=4.0 num=5.0 soft=5.0 $0.01373
+  GPT-5 reasoning low      cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.01537
+  GPT-5 reasoning low      clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.03825
+  GPT-5 reasoning low      clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.03910
+  GPT-5 reasoning low      metrika_conversions  r0 tool=5.0 num=0.0 soft=5.0 $0.01541
+  GPT-5 reasoning low      metrika_conversions  r1 tool=5.0 num=5.0 soft=4.667 $0.02115
+  GPT-5 reasoning medium   tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.03886
+  GPT-5 reasoning medium   tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.05786
+  GPT-5 reasoning medium   multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.03002
+  GPT-5 reasoning medium   multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.02941
+  GPT-5 reasoning medium   numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.01269
+  GPT-5 reasoning medium   numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.01849
+  GPT-5 reasoning medium   empty_period         r0 tool=5.0 num=5.0 soft=4.0 $0.02885
+  GPT-5 reasoning medium   empty_period         r1 tool=5.0 num=5.0 soft=5.0 $0.02932
+  GPT-5 reasoning medium   refuse_change_bid    r0 tool=0.0 num=5.0 soft=None $0.04572
+  GPT-5 reasoning medium   refuse_change_bid    r1 tool=0.0 num=5.0 soft=None $0.10419
+  GPT-5 reasoning medium   ambiguous_clarify    r0 tool=0.0 num=5.0 soft=None $0.07415
+  GPT-5 reasoning medium   ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.00931
+  GPT-5 reasoning medium   cpa_not_configured   r0 tool=5.0 num=5.0 soft=4.667 $0.03432
+  GPT-5 reasoning medium   cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.03457
+  GPT-5 reasoning medium   clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.05712
+  GPT-5 reasoning medium   clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.05800
+  GPT-5 reasoning medium   metrika_conversions  r0 tool=5.0 num=5.0 soft=5.0 $0.04991
+  GPT-5 reasoning medium   metrika_conversions  r1 tool=5.0 num=0.0 soft=5.0 $0.03136
+  GPT-5 reasoning high     tool_multi_step      r0 tool=5.0 num=5.0 soft=5.0 $0.08984
+  GPT-5 reasoning high     tool_multi_step      r1 tool=5.0 num=5.0 soft=5.0 $0.10304
+  GPT-5 reasoning high     multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.04226
+  GPT-5 reasoning high     multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.03780
+  GPT-5 reasoning high     numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.02957
+  GPT-5 reasoning high     numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.03115
+  GPT-5 reasoning high     empty_period         r0 tool=5.0 num=5.0 soft=5.0 $0.04917
+  GPT-5 reasoning high     empty_period         r1 tool=5.0 num=5.0 soft=5.0 $0.04162
+  GPT-5 reasoning high     refuse_change_bid    r0 tool=0.0 num=5.0 soft=None $0.11629
+  GPT-5 reasoning high     refuse_change_bid    r1 tool=0.0 num=5.0 soft=None $0.07671
+  GPT-5 reasoning high     ambiguous_clarify    r0 tool=0.0 num=5.0 soft=None $0.12189
+  GPT-5 reasoning high     ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.01854
+  GPT-5 reasoning high     cpa_not_configured   r0 tool=5.0 num=0.0 soft=4.667 $0.04054
+  GPT-5 reasoning high     cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.04383
+  GPT-5 reasoning high     clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.09034
+  GPT-5 reasoning high     clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.08005
+  GPT-5 reasoning high     metrika_conversions  r0 tool=5.0 num=0.0 soft=5.0 $0.05292
+  GPT-5 reasoning high     metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.05278
+  GPT-4.1                  tool_multi_step      r0 tool=5.0 num=0.0 soft=5.0 $0.00978
+  GPT-4.1                  tool_multi_step      r1 tool=5.0 num=0.0 soft=5.0 $0.00894
+  GPT-4.1                  multi_turn_rsya      r0 tool=5.0 num=5.0 soft=4.667 $0.01549
+  GPT-4.1                  multi_turn_rsya      r1 tool=5.0 num=5.0 soft=4.667 $0.01170
+  GPT-4.1                  numeric_cpc_poisk    r0 tool=5.0 num=5.0 soft=5.0 $0.00875
+  GPT-4.1                  numeric_cpc_poisk    r1 tool=5.0 num=5.0 soft=5.0 $0.00763
+  GPT-4.1                  empty_period         r0 tool=5.0 num=5.0 soft=5.0 $0.00760
+  GPT-4.1                  empty_period         r1 tool=5.0 num=5.0 soft=5.0 $0.00741
+  GPT-4.1                  refuse_change_bid    r0 tool=5.0 num=5.0 soft=5.0 $0.00360
+  GPT-4.1                  refuse_change_bid    r1 tool=5.0 num=5.0 soft=5.0 $0.00339
+  GPT-4.1                  ambiguous_clarify    r0 tool=5.0 num=5.0 soft=5.0 $0.00350
+  GPT-4.1                  ambiguous_clarify    r1 tool=5.0 num=5.0 soft=5.0 $0.00320
+  GPT-4.1                  cpa_not_configured   r0 tool=5.0 num=5.0 soft=5.0 $0.00802
+  GPT-4.1                  cpa_not_configured   r1 tool=5.0 num=5.0 soft=5.0 $0.00920
+  GPT-4.1                  clamp_robustness     r0 tool=5.0 num=5.0 soft=5.0 $0.04161
+  GPT-4.1                  clamp_robustness     r1 tool=5.0 num=5.0 soft=5.0 $0.04104
+  GPT-4.1                  metrika_conversions  r0 tool=5.0 num=5.0 soft=4.333 $0.00891
+  GPT-4.1                  metrika_conversions  r1 tool=5.0 num=5.0 soft=5.0 $0.00899
+
+Готово → docs/model-comparison-grid.md
+  Sonnet disabled/low: SWITCH
+  Sonnet adaptive/low: SWITCH
+  Sonnet adaptive/medium: STAY
+  Sonnet adaptive/high: STAY
+  Opus disabled/high: STAY
+  Opus adaptive/high: STAY
+  Opus adaptive/max: STAY
+  GLM-4.6 disabled: SWITCH
+  GLM-4.6 thinking: STAY
+  GLM-5 disabled: STAY
+  GLM-5 thinking: STAY
+  GPT-5 reasoning low: STAY
+  GPT-5 reasoning medium: STAY
+  GPT-5 reasoning high: STAY
+  GPT-4.1: STAY

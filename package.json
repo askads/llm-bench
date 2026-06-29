@@ -1,0 +1,12 @@
+{
+  "name": "llm-bench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Бенчмарк LLM-моделей на MCP-тулзах askads (Яндекс Директ / VK Ads / Метрика). Режимы fixed (фикстуры) и live (реальные MCP-серверы).",
+  "comment": "Эти зависимости нужны только для --mode live (спавн реальных MCP-серверов по stdio). Для --mode fixed npm install не требуется. Версии сверь/пинни под свои.",
+  "dependencies": {
+    "mcp-yandex-direct": "^1.0.0",
+    "mcp-vk-ads": "^1.0.0",
+    "mcp-yandex-metrica": "^1.0.0"
+  }
+}

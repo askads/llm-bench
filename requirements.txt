@@ -1,0 +1,4 @@
+anthropic        # Claude нативно + GLM через Anthropic-совместимый base_url (z.ai)
+openai           # GPT-кандидат (OpenAI-loop) + GPT-судья
+mcp              # stdio-клиент к MCP-серверам (live-режим) + типы для фикстур
+# google-genai   # опционально: Gemini-судья (нейтральный, когда GPT — кандидат)
