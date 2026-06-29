@@ -223,7 +223,7 @@ async def main():
     ap.add_argument("--repeat", type=int, default=2)
     ap.add_argument("--judges", choices=["panel", "neutral", "off"], default="panel")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--out", default="results/model-comparison-grid.md")
+    ap.add_argument("--out", default="results/model-comparison-grid.ru.md")
     args = ap.parse_args()
 
     variants = [v for v in VARIANTS if not args.variants or any(n.lower() in v["label"].lower() for n in args.variants)] or list(VARIANTS)

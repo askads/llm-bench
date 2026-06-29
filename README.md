@@ -77,7 +77,7 @@ Env токенов кабинета: `YANDEX_DIRECT_TOKEN` (+ опц. `YANDEX_DI
 
 ## Результаты последнего прогона
 
-`results/model-comparison-grid.md` — сводка + Pareto-фронт + вердикты;
+`results/model-comparison-grid.ru.md` (+ англ. `…en.md`) — сводка + Pareto-фронт;
 `results/run-log.txt` — сырой per-run лог (по нему пересчитываются агрегаты).
 
 Кратко (fixed, repeat 2, 16 вариантов): **GLM-4.6 без thinking** — паритет с Claude по кодовым

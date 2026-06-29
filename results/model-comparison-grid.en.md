@@ -1,6 +1,6 @@
 # Model comparison for AskAds (Claude / GLM / GPT) — run from 2026-06-29 UTC
 
-[🇷🇺 Русский](model-comparison-grid.md) · 🇬🇧 English
+[🇷🇺 Русский](model-comparison-grid.ru.md) · 🇬🇧 English
 
 **16 combinations** (model + settings) × **9 test cases** × **2 repeats** = 288 answers. All models received the same data — a dump of a test ad account.
 
