@@ -104,14 +104,13 @@ def test_golden_match_fixtures():
     assert acc.metrics(12348)["cpa"] is None
 
 
-def test_cost_and_decision():
+def test_cost():
     done = {"input_tokens": 1000, "cache_read_tokens": 10000, "cache_write_tokens": 0, "tokens_out": 500}
+    # GLM дешевле Claude по ставкам
     assert S.cost_from_done("glm-4.6", done) < S.cost_from_done("claude-sonnet-4-6", done)
-    good = {"numeric": 5.0, "tool": 5.0, "edge": 4.5, "score_per_dollar": {"single": 100, "multi": 200}}
-    base = {"numeric": 5.0, "tool": 5.0, "edge": 4.8, "score_per_dollar": {"single": 30, "multi": 40}}
-    assert S.decide(good, base)["verdict"] == "SWITCH"
-    bad = {"numeric": 2.0, "tool": 5.0, "edge": 4.5, "score_per_dollar": {"single": 100, "multi": 200}}
-    assert S.decide(bad, base)["verdict"] == "STAY"
+    # кэш-чтение дешевле полного входа
+    full = {"input_tokens": 11000, "cache_read_tokens": 0, "cache_write_tokens": 0, "tokens_out": 500}
+    assert S.cost_from_done("claude-sonnet-4-6", done) < S.cost_from_done("claude-sonnet-4-6", full)
 
 
 def test_fixture_version():

@@ -166,33 +166,5 @@ def cost_from_done(model: str, done: dict) -> float:
     return ((inp + cr * read_mult + cw * write_mult) * in_rate + out * out_rate) / 1_000_000
 
 
-# ======================= DECISION RULE =======================
-THRESHOLDS_SIGNED_OFF = True
-DECISION_RULE = {"numeric_min": 4.5, "tool_min": 4.5, "edge_min": 4.0, "score_per_dollar_ratio_min": 1.0}
-
-
-def _check(name, value, threshold, passed):
-    return {"name": name, "value": value, "threshold": threshold, "passed": bool(passed)}
-
-
-def decide(candidate: dict, baseline: dict, candidate_parity: dict | None = None) -> dict:
-    r = DECISION_RULE
-    checks = [
-        _check("numeric", candidate.get("numeric"), r["numeric_min"], (candidate.get("numeric") or 0) >= r["numeric_min"]),
-        _check("tool", candidate.get("tool"), r["tool_min"], (candidate.get("tool") or 0) >= r["tool_min"]),
-        _check("edge", candidate.get("edge"), r["edge_min"], (candidate.get("edge") or 0) >= r["edge_min"]),
-    ]
-    cand_spd = (candidate.get("score_per_dollar") or {}).get("multi")
-    base_spd = (baseline.get("score_per_dollar") or {}).get("multi")
-    spd_ok = bool(cand_spd and base_spd and cand_spd >= base_spd * r["score_per_dollar_ratio_min"])
-    checks.append(_check("score_per_dollar(multi) ≥ baseline×ratio", cand_spd,
-                         (base_spd or 0) * r["score_per_dollar_ratio_min"], spd_ok))
-    verdict = "SWITCH" if all(c["passed"] for c in checks) else "STAY"
-    notes = []
-    if not THRESHOLDS_SIGNED_OFF:
-        notes.append("ПОРОГИ НЕ СОГЛАСОВАНЫ — вердикт ориентировочный.")
-    if candidate_parity and (candidate.get("numeric") or 0) < r["numeric_min"] \
-            and (candidate_parity.get("numeric") or 0) >= r["numeric_min"]:
-        notes.append("Прод-конфиг провалил качество, паритет прошёл → разрыв в КОНФИГЕ, не в модели: "
-                     "рассмотреть тот же конфиг с thinking и ПЕРЕМЕРИТЬ score/$ (без авто-зачёта).")
-    return {"verdict": verdict, "checks": checks, "notes": notes, "signed_off": THRESHOLDS_SIGNED_OFF}
+# Правило решения / вердикт (SWITCH/STAY vs baseline) убраны намеренно: отчёт — чисто
+# сравнительный (сводная таблица + Pareto-фронт), без рекомендации «перейти/остаться».

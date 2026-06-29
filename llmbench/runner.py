@@ -149,33 +149,62 @@ def _f(x):
     return "—" if x is None else (f"{x:.2f}" if isinstance(x, float) else str(x))
 
 
+MODEL_DISPLAY = {
+    "claude-sonnet-4-6": "Sonnet 4.6", "claude-opus-4-8": "Opus 4.8",
+    "glm-4.6": "GLM-4.6", "glm-5": "GLM-5", "gpt-5": "GPT-5", "gpt-4.1": "GPT-4.1",
+}
+
+
+def _describe(v):
+    """Вариант → (LLM, Thinking) для отображения. У GLM усилие — не рычаг, не показываем."""
+    llm = MODEL_DISPLAY.get(v["model"], v["model"])
+    if v.get("reasoning_effort"):
+        thinking = f"reasoning · {v['reasoning_effort']}"
+    elif v["engine"] == "openai":
+        thinking = "—"
+    else:
+        t = v.get("thinking") or "disabled"
+        thinking = t if v["vendor"] == "zai" else f"{t} · {v.get('effort')}"
+    return llm, thinking
+
+
+_GLOSSARY = """## Термины (как читать таблицу)
+
+- **Numeric** (0–5) — точность чисел: верно ли посчитаны CTR/CPC/CPA/расход и не выдуманы ли цифры. **В коде** (детерминированно).
+- **Tool** (0–5) — корректность инструментов: вызвал нужные тулы в нужном порядке, без лишних/запрещённых. **Код**.
+- **Edge** (0–5) — поведение в краевых случаях (пустой отчёт, отказ менять ставку, уточнение). **LLM-судьи**.
+- **Rus** (0–5) — естественность и ясность русского. Судьи.
+- **composite** (0–5) — сводный балл строки = среднее доступных измерений.
+- **$/прог** — средняя стоимость прогона (USD); **score/$ (s/m)** — «качество на доллар» (composite ÷ цена) для single/multi-turn; выше = выгоднее.
+- **σ** — разброс composite между повторами: меньше = стабильнее.
+- **Thinking** — режим обдумывания + бюджет усилий: `disabled` (выкл), `adaptive` (Claude/GLM), `reasoning` (GPT-5); `low/medium/high/max`; `—` = без обдумывания.
+- **⭐** — **лучший баланс «качество/цена»**: вариант, который нельзя «побить» — нет другого, который и качественнее, и дешевле. _(В оптимизации — «Pareto-фронт».)_
+"""
+
+
 def _build_md(agg, meta):
     o = ["# Бенчмарк моделей на MCP-тулзах askads (fixed-input)\n"]
     o.append(f"_Сгенерировано {meta['ts']} · FIXTURE_VERSION `{FIXTURE_VERSION}` · mode={meta['mode']} · "
              f"repeat={meta['repeat']} · вариантов: {len(meta['variants'])} · кейсов: {meta['n_cases']}_\n")
     o.append("Claude/GLM — Anthropic-движок; GPT — OpenAI-loop. Tool-Use/Numeric — в коде; "
              f"интерпретация/русский — судьи {meta['judges']} (нейтрален: **{meta['neutral'] or '—'}**).\n")
-    o.append("\n## Сводка (сорт. по composite)\n")
-    o.append("| Вариант | engine | Numeric | Tool | Edge | Rus | $/прог | score/$ s | score/$ m | σ | composite |")
+    o.append(_GLOSSARY)
+    o.append("## Все варианты (сорт. по composite)\n")
+    o.append("| LLM | Thinking | Numeric | Tool | Edge | Rus | $/прог | score/$ s | score/$ m | σ | composite |")
     o.append("|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
     front = set(_pareto(agg))
+    by_label = {v["label"]: v for v in meta["variants"]}
     for label, a in sorted(agg.items(), key=lambda kv: (kv[1]["composite"] is None, -(kv[1]["composite"] or 0))):
-        eng = next(v["engine"] for v in meta["variants"] if v["label"] == label)
+        llm, thinking = _describe(by_label[label])
         spd = a["score_per_dollar"]
-        o.append(f"| {label}{' ⭐' if label in front else ''} | {eng} | {_f(a['numeric'])} | {_f(a['tool'])} | "
+        o.append(f"| {llm}{' ⭐' if label in front else ''} | {thinking} | {_f(a['numeric'])} | {_f(a['tool'])} | "
                  f"{_f(a['edge'])} | {_f(a['russian'])} | ${a['cost_avg'] or 0:.5f} | {_f(spd['single'])} | "
                  f"{_f(spd['multi'])} | {_f(a['stddev_composite'])} | {_f(a['composite'])} |")
-    o.append(f"\n⭐ — Pareto-фронт: **{', '.join(front) or '—'}**\n")
-    o.append("\n## Вердикт vs baseline (Sonnet disabled/high = прод)\n")
-    for v in meta["verdicts"]:
-        r = v["result"]
-        o.append(f"\n### {v['candidate']} → **{r['verdict']}**\n")
-        o.append("| Проверка | Значение | Порог | PASS |\n|---|--:|--:|:--:|")
-        for c in r["checks"]:
-            o.append(f"| {c['name']} | {_f(c['value'])} | {_f(c['threshold'])} | {'✅' if c['passed'] else '❌'} |")
-        for n in r["notes"]:
-            o.append(f"\n> {n}\n")
-    o.append("\n## Оговорки\n")
+    o.append(f"\n⭐ — **лучший баланс «качество/цена»** (нельзя стать и качественнее, и дешевле одновременно): "
+             f"**{', '.join(front) or '—'}**.\n")
+    if meta.get("baseline_desc"):
+        o.append(f"_Для ориентира: текущий прод askads — {meta['baseline_desc']}._\n")
+    o.append("\n## Известные ограничения\n")
     for line in meta["caveats"]:
         o.append(f"- {line}")
     return "\n".join(o)
@@ -229,13 +258,12 @@ async def main():
         agg[v["label"]] = _agg(recs)
 
     baseline = next((v for v in variants if v.get("is_baseline")), None)
-    base_m = agg.get(baseline["label"]) if baseline else None
-    verdicts = [{"candidate": v["label"], "result": scoring.decide(agg[v["label"]], base_m)}
-                for v in variants if base_m and not v.get("is_baseline") and v["label"] in agg]
+    baseline_desc = "{} ({})".format(*_describe(baseline)) if baseline else None
 
     meta = {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "mode": args.mode,
             "repeat": args.repeat, "n_cases": len(cases), "variants": variants,
-            "judges": [j["name"] for j in judges_all] or "—", "neutral": neutral, "verdicts": verdicts,
+            "judges": [j["name"] for j in judges_all] or "—", "neutral": neutral,
+            "baseline_desc": baseline_desc,
             "caveats": [
                 "GPT — отдельный OpenAI-loop (не Anthropic-движок) — tool-use не байт-в-байт с Claude/GLM.",
                 "Без нейтрального судьи (если все вендоры — кандидаты) первичный мягкий балл = среднее панели (advisory).",
@@ -248,8 +276,6 @@ async def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_build_md(agg, meta), encoding="utf-8")
     print(f"\nГотово → {out}")
-    for v in verdicts:
-        print(f"  {v['candidate']}: {v['result']['verdict']}")
 
 
 if __name__ == "__main__":
