@@ -78,7 +78,7 @@ BEFORE the run; the runner prints PASS/FAIL per variant vs the baseline (current
 
 ## Latest run results
 
-`results/model-comparison-grid.md` — summary + Pareto frontier + verdicts;
+`results/model-comparison-grid.en.md` (+ `…ru.md`) — summary + Pareto frontier;
 `results/run-log.txt` — raw per-run log (aggregates are recomputable from it).
 
 In short (fixed, repeat 2, 16 variants): **GLM-4.6 without thinking** — parity with Claude on
