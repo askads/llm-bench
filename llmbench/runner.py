@@ -183,12 +183,12 @@ _GLOSSARY = """## Термины (как читать таблицу)
 
 
 def _build_md(agg, meta):
-    o = ["# Бенчмарк моделей на MCP-тулзах askads (fixed-input)\n"]
+    o = ["# Сравнение моделей для AskAds (Claude / GLM / GPT)\n"]
     total = len(meta['variants']) * meta['n_cases'] * meta['repeat']
     judges = ', '.join(meta['judges']) if isinstance(meta['judges'], list) else meta['judges']
-    o.append(f"_Прогон {meta['ts']} · режим {meta['mode']}. **{len(meta['variants'])} вариантов** "
+    o.append(f"_Запуск от {meta['ts']} × **{len(meta['variants'])} вариантов** "
              f"(модель × thinking/effort) × **{meta['n_cases']} тест-кейсов** × **{meta['repeat']} повтора** "
-             f"= {total} запусков. Вход одинаковый для всех — фикстуры версии `{FIXTURE_VERSION}`._\n")
+             f"= {total} запусков · режим {meta['mode']} · вход одинаковый для всех (фикстуры версии `{FIXTURE_VERSION}`)._\n")
     o.append("**Как считалось.** Claude/GLM — наш агентный движок; GPT — отдельный OpenAI-цикл "
              "(askads на Anthropic, GPT в тот же движок не встроить) → его tool-use сопоставим не на 100%. "
              f"**Tool/Numeric** считает код; **Edge/Rus** — LLM-судьи ({judges}; "
