@@ -23,7 +23,7 @@ repository is self-contained.
 | **Numeric-Accuracy** (number correctness, "don't invent CPA") | code | `scoring.score_numeric` |
 | Interpretation / Russian / Edge handling | judge panel | `judges.py` |
 
-Code metrics are the backbone of the decision; judges are strictly secondary.
+Key metrics are the backbone of the decision; judges are strictly secondary.
 
 ## Layout
 
@@ -82,9 +82,9 @@ BEFORE the run; the runner prints PASS/FAIL per variant vs the baseline (current
 `results/run-log.txt` — raw per-run log (aggregates are recomputable from it).
 
 In short (fixed, repeat 2, 16 variants): **GLM-4.6 without thinking** — parity with Claude on
-the code metrics (Numeric/Tool 5.0), the most stable non-Claude variant (σ 0.36), and **~11×
+the key metrics (Numeric/Tool 5.0), the most stable non-Claude variant (σ 0.36), and **~11×
 cheaper** than prod (score/$ 1630 vs 115). The only SWITCH on the Pareto frontier. Surprises:
-thinking HURTS GLM-4.6 (Numeric 5.0→4.0); GLM-5 is worse than 4.6; GPT fails the code metrics
+thinking HURTS GLM-4.6 (Numeric 5.0→4.0); GLM-5 is worse than 4.6; GPT fails the key metrics
 (gpt-4.1 omits CPA → Numeric 4.0; gpt-5 reaches for tools on a "change the bid" request).
 
 ## Known limitations
@@ -92,7 +92,7 @@ thinking HURTS GLM-4.6 (Numeric 5.0→4.0); GLM-5 is worse than 4.6; GPT fails t
 - **Case ceiling:** top models max out at 5.0 on Tool/Numeric → "parity" here means "both ace
   THESE tasks". Harder cases are needed to truly separate quality.
 - **Judges are secondary:** without a neutral vendor, the primary soft score is the panel mean
-  (advisory, self-preference possible). The decision rests on the code metrics.
+  (advisory, self-preference possible). The decision rests on the key metrics.
 - gpt/gemini/glm rates and cache multipliers are estimates; verify against billing.
 - `glm-5`/`gpt-5`: availability ≠ identity of the expected model — verify.
 - `--repeat` is a coarse noise flag, not a comparison count; "wrong number == missing" in

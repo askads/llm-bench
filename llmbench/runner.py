@@ -156,16 +156,15 @@ MODEL_DISPLAY = {
 
 
 def _describe(v):
-    """Вариант → (LLM, Thinking) для отображения. У GLM усилие — не рычаг, не показываем."""
+    """Вариант → (LLM, Thinking, Effort). Thinking: adaptive/reasoning/нет; у GLM effort не рычаг (—)."""
     llm = MODEL_DISPLAY.get(v["model"], v["model"])
     if v.get("reasoning_effort"):
-        thinking = f"reasoning · {v['reasoning_effort']}"
-    elif v["engine"] == "openai":
-        thinking = "—"
-    else:
-        t = v.get("thinking") or "disabled"
-        thinking = t if v["vendor"] == "zai" else f"{t} · {v.get('effort')}"
-    return llm, thinking
+        return llm, "reasoning", v["reasoning_effort"]
+    if v["engine"] == "openai":
+        return llm, "нет", "—"
+    thinking = "adaptive" if v.get("thinking") == "adaptive" else "нет"
+    effort = "—" if v["vendor"] == "zai" else (v.get("effort") or "—")
+    return llm, thinking, effort
 
 
 _GLOSSARY = """## Термины (как читать таблицу)
@@ -177,27 +176,33 @@ _GLOSSARY = """## Термины (как читать таблицу)
 - **composite** (0–5) — сводный балл строки = среднее доступных измерений.
 - **$/прог** — средняя стоимость прогона (USD); **score/$ (s/m)** — «качество на доллар» (composite ÷ цена) для single/multi-turn; выше = выгоднее.
 - **σ** — разброс composite между повторами: меньше = стабильнее.
-- **Thinking** — режим обдумывания + бюджет усилий: `disabled` (выкл), `adaptive` (Claude/GLM), `reasoning` (GPT-5); `low/medium/high/max`; `—` = без обдумывания.
+- **Thinking** — думает ли модель перед ответом: `adaptive` (Claude/GLM), `reasoning` (GPT-5), `нет`.
+- **Effort** — бюджет «усилий» на ответ (`low/medium/high/max`); отдельная от thinking настройка (при выключенном thinking влияет слабо). У GLM не настраивается (`—`).
 - **⭐** — **лучший баланс «качество/цена»**: вариант, который нельзя «побить» — нет другого, который и качественнее, и дешевле. _(В оптимизации — «Pareto-фронт».)_
 """
 
 
 def _build_md(agg, meta):
     o = ["# Бенчмарк моделей на MCP-тулзах askads (fixed-input)\n"]
-    o.append(f"_Сгенерировано {meta['ts']} · FIXTURE_VERSION `{FIXTURE_VERSION}` · mode={meta['mode']} · "
-             f"repeat={meta['repeat']} · вариантов: {len(meta['variants'])} · кейсов: {meta['n_cases']}_\n")
-    o.append("Claude/GLM — Anthropic-движок; GPT — OpenAI-loop. Tool-Use/Numeric — в коде; "
-             f"интерпретация/русский — судьи {meta['judges']} (нейтрален: **{meta['neutral'] or '—'}**).\n")
+    total = len(meta['variants']) * meta['n_cases'] * meta['repeat']
+    judges = ', '.join(meta['judges']) if isinstance(meta['judges'], list) else meta['judges']
+    o.append(f"_Прогон {meta['ts']} · режим {meta['mode']}. **{len(meta['variants'])} вариантов** "
+             f"(модель × thinking/effort) × **{meta['n_cases']} тест-кейсов** × **{meta['repeat']} повтора** "
+             f"= {total} запусков. Вход одинаковый для всех — фикстуры версии `{FIXTURE_VERSION}`._\n")
+    o.append("**Как считалось.** Claude/GLM — наш агентный движок; GPT — отдельный OpenAI-цикл "
+             "(askads на Anthropic, GPT в тот же движок не встроить) → его tool-use сопоставим не на 100%. "
+             f"**Tool/Numeric** считает код; **Edge/Rus** — LLM-судьи ({judges}; "
+             f"нейтрален: **{meta['neutral'] or '—'}**). Судьи вторичны — вес на ключевых метриках.\n")
     o.append(_GLOSSARY)
     o.append("## Все варианты (сорт. по composite)\n")
-    o.append("| LLM | Thinking | Numeric | Tool | Edge | Rus | $/прог | score/$ s | score/$ m | σ | composite |")
-    o.append("|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
+    o.append("| LLM | Thinking | Effort | Numeric | Tool | Edge | Rus | $/прог | score/$ s | score/$ m | σ | composite |")
+    o.append("|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
     front = set(_pareto(agg))
     by_label = {v["label"]: v for v in meta["variants"]}
     for label, a in sorted(agg.items(), key=lambda kv: (kv[1]["composite"] is None, -(kv[1]["composite"] or 0))):
-        llm, thinking = _describe(by_label[label])
+        llm, thinking, effort = _describe(by_label[label])
         spd = a["score_per_dollar"]
-        o.append(f"| {llm}{' ⭐' if label in front else ''} | {thinking} | {_f(a['numeric'])} | {_f(a['tool'])} | "
+        o.append(f"| {llm}{' ⭐' if label in front else ''} | {thinking} | {effort} | {_f(a['numeric'])} | {_f(a['tool'])} | "
                  f"{_f(a['edge'])} | {_f(a['russian'])} | ${a['cost_avg'] or 0:.5f} | {_f(spd['single'])} | "
                  f"{_f(spd['multi'])} | {_f(a['stddev_composite'])} | {_f(a['composite'])} |")
     o.append(f"\n⭐ — **лучший баланс «качество/цена»** (нельзя стать и качественнее, и дешевле одновременно): "
@@ -258,19 +263,22 @@ async def main():
         agg[v["label"]] = _agg(recs)
 
     baseline = next((v for v in variants if v.get("is_baseline")), None)
-    baseline_desc = "{} ({})".format(*_describe(baseline)) if baseline else None
+    baseline_desc = "{} (thinking {}, effort {})".format(*_describe(baseline)) if baseline else None
 
     meta = {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "mode": args.mode,
             "repeat": args.repeat, "n_cases": len(cases), "variants": variants,
             "judges": [j["name"] for j in judges_all] or "—", "neutral": neutral,
             "baseline_desc": baseline_desc,
             "caveats": [
-                "GPT — отдельный OpenAI-loop (не Anthropic-движок) — tool-use не байт-в-байт с Claude/GLM.",
-                "Без нейтрального судьи (если все вендоры — кандидаты) первичный мягкий балл = среднее панели (advisory).",
-                "Ставки/кэш-множители gpt/gemini/glm — оценки; сверить с биллингом.",
-                "glm-5/gpt-5: доступность ≠ идентичность ожидаемой модели — сверить.",
-                "repeat — флаг шума; «неверное число == пропущенное» в numeric — упрощение.",
-                "fixed-режим: чистые фикстуры не ловят robustness на грязном API-выводе (для этого --mode live).",
+                "**GPT гоняли через отдельную обвязку** (askads на Anthropic, GPT в его движок не вставить) — "
+                "точность работы GPT с инструментами сравнима с Claude/GLM не идеально (другой формат вызова тулов).",
+                "**Независимого судьи нет**: ответы оценивают те же компании, чьи модели и сравниваются (Claude судит "
+                "в т.ч. ответы Claude, и т.д.) — возможно завышение «своей» модели; поэтому оценки судей вспомогательные, "
+                "вес на ключевых метриках Tool/Numeric (их считает код).",
+                "**Цены и скидки за кэш (кэш-хит)** у gpt/gemini/glm — по прайс-листам/оценке, не по реальным счетам; сверить с биллингом.",
+                "**Модель могла подмениться**: ответ API на имя `glm-5`/`gpt-5` ещё не гарантирует, что под капотом именно она.",
+                "**Мало повторов** (2) — разбросу (σ) доверять рано, нужно больше; в Numeric «уверенно неверное число» = «не названо».",
+                "Режим `fixed`: модели видят аккуратные тестовые данные (фикстуры), а не «грязный» реальный вывод API (для этого `--mode live`).",
             ]}
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
