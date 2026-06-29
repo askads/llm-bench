@@ -174,7 +174,7 @@ _GLOSSARY = """## Термины (как читать таблицу)
 - **Edge Cases** (0–5) — поведение в краевых случаях (пустой отчёт, отказ менять ставку, уточнение). **LLM-судьи**.
 - **Lang quality** (0–5) — естественность и ясность русского. Судьи.
 - **Score** (0–5) — сводный балл строки (итог) = среднее доступных измерений (Accuracy/Tools Use/Edge Cases/Lang quality).
-- **Cost per Answer** — средняя стоимость прогона (USD); **Score per $ (s/m)** — «качество на доллар» (Score ÷ цена) для одно-/многошаговых диалогов; выше = выгоднее.
+- **Cost per Answer** — средняя стоимость прогона (USD); **Score per USD (s/m)** — «качество на доллар» (Score ÷ цена) для одно-/многошаговых диалогов; выше = выгоднее.
 - **Stability** (0–5) — стабильность ответов между повторами (`5 − разброс`): выше = стабильнее.
 - **Thinking** — думает ли модель перед ответом: `adaptive` (Claude/GLM), `reasoning` (GPT-5), `нет`.
 - **Effort** — бюджет «усилий» на ответ (`low/medium/high/max`); отдельная от thinking настройка (при выключенном thinking влияет слабо). У GLM не настраивается (`—`).
@@ -195,7 +195,7 @@ def _build_md(agg, meta):
              f"нейтрален: **{meta['neutral'] or '—'}**). Судьи вторичны — вес на ключевых метриках.\n")
     o.append(_GLOSSARY)
     o.append("## Все варианты (сорт. по Score)\n")
-    o.append("| LLM | Thinking | Effort | Accuracy | Tools<br>Use | Edge<br>Cases | Lang<br>quality | Cost per<br>Answer | Score per<br>$ (s) | Score per<br>$ (m) | Stability | Score |")
+    o.append("| LLM | Thinking | Effort | Accuracy | Tools<br>Use | Edge<br>Cases | Lang<br>quality | Cost<br>per Answer | Score<br>per USD (s) | Score<br>per USD (m) | Stability | Score |")
     o.append("|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
     front = set(_pareto(agg))
     by_label = {v["label"]: v for v in meta["variants"]}
