@@ -111,9 +111,12 @@ differing difficulty).
 
 ## Latest run results
 
-The latest run is in the newest dated folder `results/<date>/` (`results.ru.md` + English
-`results.en.md`) — curated summary + Pareto frontier. ⚠️ The numbers in `results/2026-06-29/`
-predate the scoring/fixture fixes (see `REVIEW.md`); regenerate with a fresh run.
+**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a
+fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed
+scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best
+quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the
+quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is
+historical, before the scoring fixes.
 
 ## Known limitations
 
