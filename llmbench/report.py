@@ -83,19 +83,20 @@ MODEL_DISPLAY = {
 }
 
 
-def describe(v):
-    """Вариант → (LLM, Thinking, Effort). Thinking: adaptive/reasoning/нет; у GLM effort не рычаг (—)."""
+def describe(v, lang="ru"):
+    """Вариант → (LLM, Thinking, Effort). Thinking: adaptive/reasoning/нет(en: no); у GLM effort не рычаг (—)."""
     llm = MODEL_DISPLAY.get(v["model"], v["model"])
+    no = "no" if lang == "en" else "нет"
     if v.get("reasoning_effort"):
         return llm, "reasoning", v["reasoning_effort"]
     if v["engine"] == "openai":
-        return llm, "нет", "—"
-    thinking = "adaptive" if v.get("thinking") == "adaptive" else "нет"
+        return llm, no, "—"
+    thinking = "adaptive" if v.get("thinking") == "adaptive" else no
     effort = "—" if v["vendor"] == "zai" else (v.get("effort") or "—")
     return llm, thinking, effort
 
 
-GLOSSARY = """## Термины (как читать таблицу)
+GLOSSARY_RU = """## Термины (как читать таблицу)
 
 - **Accuracy** (0–5) — точность чисел: верно ли посчитаны CTR/CPC/CPA/расход, не выдуманы ли
   цифры и той ли кампании они приписаны (entity-анкоринг). **В коде** (детерминированно).
@@ -123,43 +124,129 @@ GLOSSARY = """## Термины (как читать таблицу)
 """
 
 
-def build_md(aggregates, meta):
-    o = ["# Сравнение моделей для AskAds (Claude / GLM / GPT)\n"]
+GLOSSARY_EN = """## Terms (how to read the table)
+
+- **Accuracy** (0–5) — numeric correctness: are CTR/CPC/CPA/spend computed right, nothing made
+  up, and are the numbers attributed to the right campaign (entity anchoring). **In code**
+  (deterministic).
+- **Tools Use** (0–5) — tool correctness: called the right tools (successfully) in the right
+  order, nothing extra/forbidden. **Code**.
+- **Edge Cases** (0–5) — behavior in edge cases (empty report, refusing to change a bid,
+  clarifying). **LLM judges** — they also score runs with tool violations.
+- **Lang quality** (0–5) — naturalness and clarity of the Russian. Judges.
+- **Score** (0–5) — a run's overall score = mean of the available components: Tools Use
+  (always), Accuracy (if the case has golden facts), Edge Cases/Lang quality (if judges ran).
+  The component set depends on the case, so Score is comparable across variants (everyone runs
+  the same cases) but is NOT equal to the mean of the four left columns. Failed runs are
+  excluded from Score — see Err.
+- **Cost per Answer** — mean cost of a successful run (USD); **Score per USD (s/m)** — "quality
+  per dollar" (Score ÷ cost) for single-/multi-step dialogs; higher = better value.
+- **Stability** (0–5) — `5 − mean spread (σ) of Score between repeats of the same case`:
+  higher = more stable. Meaningful at repeat ≥ 2.
+- **Err** — `failed/all runs` (API errors, token-limit truncation); suffix `·NR` — N runs
+  succeeded only after a retry with the same config. Failed runs are excluded from all metrics,
+  but their cost is included in the total run cost.
+- **Thinking** — whether the model thinks before answering: `adaptive` (Claude/GLM),
+  `reasoning` (GPT-5), `no`.
+- **Effort** — the "effort" budget per answer (`low/medium/high/max`); separate from thinking
+  (weak effect when thinking is off). Not configurable for GLM (`—`).
+- **⭐** — **best quality/price balance**: a variant that can't be beaten — no other is both
+  better and cheaper. _(In optimization — the "Pareto frontier".)_
+"""
+
+
+# Локализация проз-строк отчёта. Колонки таблицы (Accuracy/Tools Use/…) — англ. в обеих
+# версиях, поэтому переводим только заголовки/пояснения/оговорки; числа считает agg().
+_LANG = {
+    "ru": {
+        "title": "# Сравнение моделей для AskAds (Claude / GLM / GPT)\n",
+        "cross": "🇷🇺 Русский · [🇬🇧 English](results.en.md)\n",
+        "runline": ("_Запуск от {ts} × **{nv} вариантов** (модель × thinking/effort) × "
+                    "**{nc} тест-кейсов** × **{rep} повтора** = {total} запусков · режим {mode} · "
+                    "вход одинаковый для всех (фикстуры версии `{fx}`){commit}._\n"),
+        "commit": " · код `{c}`",
+        "how": ("**Как считалось.** Claude/GLM — наш агентный движок; GPT — отдельный OpenAI-цикл "
+                "(askads на Anthropic, GPT в тот же движок не встроить) → его tool-use сопоставим не "
+                "на 100%. **Tools Use/Accuracy** считает код; **Edge Cases/Lang quality** — LLM-судьи "
+                "({judges}; нейтрален: **{neutral}**). Судьи вторичны — вес на ключевых метриках.\n"),
+        "glossary": GLOSSARY_RU,
+        "variants_h": "## Все варианты (сорт. по Score)\n",
+        "star": ("\n⭐ — **лучший баланс «качество/цена»** (нельзя стать и качественнее, и дешевле "
+                 "одновременно): **{front}**.\n"),
+        "baseline": "_Для ориентира: текущий прод askads — {desc}._\n",
+        "limits_h": "\n## Известные ограничения\n",
+        "jsonl": ("\n_Сырые per-run данные: `{jsonl}` — отчёт пересобирается из них командой "
+                  "`python -m llmbench.runner --report-from <файл>`._"),
+        "none": "—",
+    },
+    "en": {
+        "title": "# Model comparison for AskAds (Claude / GLM / GPT)\n",
+        "cross": "[🇷🇺 Русский](results.ru.md) · 🇬🇧 English\n",
+        "runline": ("_Run from {ts} × **{nv} variants** (model × thinking/effort) × "
+                    "**{nc} test cases** × **{rep} repeats** = {total} runs · mode {mode} · "
+                    "identical input for all (fixtures version `{fx}`){commit}._\n"),
+        "commit": " · code `{c}`",
+        "how": ("**How it was measured.** Claude/GLM — our agentic engine; GPT — a separate OpenAI "
+                "loop (askads is on Anthropic, GPT can't be plugged into the same engine) → its "
+                "tool-use isn't 100% comparable. **Tools Use/Accuracy** are computed in code; **Edge "
+                "Cases/Lang quality** — LLM judges ({judges}; neutral: **{neutral}**). Judges are "
+                "secondary — weight is on the key metrics.\n"),
+        "glossary": GLOSSARY_EN,
+        "variants_h": "## All variants (sorted by Score)\n",
+        "star": ("\n⭐ — **best quality/price balance** (can't become both better and cheaper at "
+                 "once): **{front}**.\n"),
+        "baseline": "_For reference: current askads production — {desc}._\n",
+        "limits_h": "\n## Known limitations\n",
+        "jsonl": ("\n_Raw per-run data: `{jsonl}` — the report is rebuilt from it with "
+                  "`python -m llmbench.runner --report-from <file>`._"),
+        "none": "—",
+    },
+}
+
+_TABLE_HEADER = ("| LLM | Thinking | Effort | Accuracy | Tools<br>Use | Edge<br>Cases | "
+                 "Lang<br>quality | Cost<br>per Answer | Score<br>per USD (s) | "
+                 "Score<br>per USD (m) | Stability | Err | Score |")
+_TABLE_SEP = "|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|"
+
+
+def build_md(aggregates, meta, lang="ru"):
+    t = _LANG.get(lang, _LANG["ru"])
     total = sum(a["n_runs"] for a in aggregates.values())
     judges = ', '.join(meta['judges']) if isinstance(meta['judges'], list) else meta['judges']
-    commit = f" · код `{meta['git_commit']}`" if meta.get("git_commit") else ""
-    o.append(f"_Запуск от {meta['ts']} × **{len(meta['variants'])} вариантов** "
-             f"(модель × thinking/effort) × **{meta['n_cases']} тест-кейсов** × **{meta['repeat']} повтора** "
-             f"= {total} запусков · режим {meta['mode']} · вход одинаковый для всех "
-             f"(фикстуры версии `{meta['fixture_version']}`){commit}._\n")
-    o.append("**Как считалось.** Claude/GLM — наш агентный движок; GPT — отдельный OpenAI-цикл "
-             "(askads на Anthropic, GPT в тот же движок не встроить) → его tool-use сопоставим не на 100%. "
-             f"**Tools Use/Accuracy** считает код; **Edge Cases/Lang quality** — LLM-судьи ({judges}; "
-             f"нейтрален: **{meta['neutral'] or '—'}**). Судьи вторичны — вес на ключевых метриках.\n")
-    o.append(GLOSSARY)
-    o.append("## Все варианты (сорт. по Score)\n")
-    o.append("| LLM | Thinking | Effort | Accuracy | Tools<br>Use | Edge<br>Cases | Lang<br>quality | "
-             "Cost<br>per Answer | Score<br>per USD (s) | Score<br>per USD (m) | Stability | Err | Score |")
-    o.append("|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
+    nv = meta.get('neutral')
+    neutral = (', '.join(nv) if isinstance(nv, list) else (str(nv) if nv else "")) or t["none"]
+    commit = t["commit"].format(c=meta['git_commit']) if meta.get("git_commit") else ""
+    o = [t["title"], t["cross"]]
+    o.append(t["runline"].format(ts=meta['ts'], nv=len(meta['variants']), nc=meta['n_cases'],
+                                 rep=meta['repeat'], total=total, mode=meta['mode'],
+                                 fx=meta['fixture_version'], commit=commit))
+    o.append(t["how"].format(judges=judges, neutral=neutral))
+    o.append(t["glossary"])
+    o.append(t["variants_h"])
+    o.append(_TABLE_HEADER)
+    o.append(_TABLE_SEP)
     front = set(pareto(aggregates))
     by_label = {v["label"]: v for v in meta["variants"]}
     for label, a in sorted(aggregates.items(), key=lambda kv: (kv[1]["composite"] is None, -(kv[1]["composite"] or 0))):
-        llm, thinking, effort = describe(by_label[label])
+        llm, thinking, effort = describe(by_label[label], lang)
         spd = a["score_per_dollar"]
-        cost = "—" if a["cost_avg"] is None else f"${a['cost_avg']:.5f}"
+        cost = t["none"] if a["cost_avg"] is None else f"${a['cost_avg']:.5f}"
         err = f"{a['errors']}/{a['n_runs']}" + (f" ·{a['retried']}R" if a.get("retried") else "")
         stability = _f(round(5 - a["stddev_composite"], 3) if a["stddev_composite"] is not None else None)
         o.append(f"| {llm}{' ⭐' if label in front else ''} | {thinking} | {effort} | {_f(a['numeric'])} | "
                  f"{_f(a['tool'])} | {_f(a['edge'])} | {_f(a['russian'])} | {cost} | {_f(spd['single'])} | "
                  f"{_f(spd['multi'])} | {stability} | {err} | {_f(a['composite'])} |")
-    o.append(f"\n⭐ — **лучший баланс «качество/цена»** (нельзя стать и качественнее, и дешевле одновременно): "
-             f"**{', '.join(front) or '—'}**.\n")
-    if meta.get("baseline_desc"):
-        o.append(f"_Для ориентира: текущий прод askads — {meta['baseline_desc']}._\n")
-    o.append("\n## Известные ограничения\n")
-    for line in meta["caveats"]:
+    o.append(t["star"].format(front=', '.join(front) or t["none"]))
+    baseline = next((v for v in meta["variants"] if v.get("is_baseline")), None)
+    if baseline:
+        bl_llm, bl_th, bl_ef = describe(baseline, lang)
+        o.append(t["baseline"].format(desc=f"{bl_llm} (thinking {bl_th}, effort {bl_ef})"))
+    o.append(t["limits_h"])
+    caveats = meta["caveats"]
+    if isinstance(caveats, dict):
+        caveats = caveats.get(lang) or caveats.get("ru") or []
+    for line in caveats:
         o.append(f"- {line}")
     if meta.get("jsonl"):
-        o.append(f"\n_Сырые per-run данные: `{meta['jsonl']}` — отчёт пересобирается из них "
-                 f"командой `python -m llmbench.runner --report-from <файл>`._")
+        o.append(t["jsonl"].format(jsonl=meta['jsonl']))
     return "\n".join(o)

@@ -1,16 +1,17 @@
 """Ранер: сетка вариантов (модель × thinking/effort/reasoning) × кейсы × repeat.
 
 Режимы MCP: --mode fixed (фикстуры, детерминированно, CI) | live (реальные MCP-серверы +
-токены из env). Движок и MCP развязаны от askads. Каждый прогон пишется в JSONL
-(results/runs-<ts>.jsonl): ответы, трейсы, usage, оценки — отчёт пересобирается из него
-без повторных трат (`--report-from`).
+токены из env). Движок и MCP развязаны от askads. Каждый прогон складывается в дата-папку
+results/<date>/: сырой runs.jsonl (ответы, трейсы, usage, оценки) + двуязычный отчёт
+results.ru.md и results.en.md. Отчёт пересобирается из runs.jsonl без повторных трат
+(`--report-from`).
 
   # детерминированный model-бенч (нужны ключи моделей):
   python -m llmbench.runner --mode fixed --repeat 2
   # против РЕАЛЬНЫХ тулов (нужны npm-серверы + токены кабинета):
   python -m llmbench.runner --mode live --variants "GLM-4.6 disabled" --judges off
-  # пересобрать отчёт из сырых данных (бесплатно):
-  python -m llmbench.runner --report-from results/runs-20260703-120000.jsonl
+  # пересобрать отчёт (ru+en) из сырых данных (бесплатно):
+  python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 """
 from __future__ import annotations
 
@@ -31,10 +32,12 @@ from llmbench.engines import run_anthropic, run_openai
 from llmbench.fixtures import FIXTURE_VERSION
 
 ZAI = "https://api.z.ai/api/anthropic"
-# Ранер пишет СГЕНЕРИРОВАННЫЙ отчёт, а не курируемые model-comparison-grid.ru/en.md —
-# чтобы прогон не затирал ручную сборку (Топ-3, прозу, двуязычие). Курируемые отчёты
-# правятся из этого файла вручную.
-DEFAULT_OUT = "results/model-comparison-grid.generated.md"
+# Каждый прогон — своя дата-папка results/<date>/ с сырым runs.jsonl и двуязычным отчётом
+# (results.ru.md + results.en.md). Проза/Топ-3 дописываются руками поверх сгенерированного
+# грида — прогон не затирает чужую дата-папку (при коллизии по дате добавляет время).
+RESULTS_ROOT = "results"
+REPORT_STEM = "results"  # results.ru.md / results.en.md
+JSONL_NAME = "runs.jsonl"
 
 
 def _v(label, vendor, engine, model, **kw):
@@ -148,23 +151,40 @@ def _git_commit():
 
 
 def _build_caveats(mode, repeat, neutral):
-    caveats = [
-        "**GPT гоняли через отдельную обвязку** (askads на Anthropic, GPT в его движок не вставить) — "
+    """Оговорки на обоих языках → {'ru': [...], 'en': [...]}; build_md берёт нужный по lang."""
+    ru, en = [], []
+
+    def add(r, e):
+        ru.append(r)
+        en.append(e)
+
+    add("**GPT гоняли через отдельную обвязку** (askads на Anthropic, GPT в его движок не вставить) — "
         "точность работы GPT с инструментами сравнима с Claude/GLM не идеально (другой формат вызова тулов).",
-        "**Цены и скидки за кэш (кэш-хит)** — по прайс-листам; сверить с реальными счетами.",
-        "**Модель могла подмениться**: ответ API на имя `glm-5`/`gpt-5` ещё не гарантирует, что под капотом именно она.",
-    ]
+        "**GPT was run via a separate wrapper** (askads is on Anthropic, GPT can't be plugged into its "
+        "engine) — GPT's tool-use accuracy isn't perfectly comparable to Claude/GLM (a different tool-call format).")
+    add("**Цены и скидки за кэш (кэш-хит)** — по прайс-листам; сверить с реальными счетами.",
+        "**Prices and cache-read discounts** — from price lists; verify against real bills.")
+    add("**Модель могла подмениться**: ответ API на имя `glm-5`/`gpt-5` ещё не гарантирует, что под капотом именно она.",
+        "**The model may have been substituted**: the API answering to `glm-5`/`gpt-5` doesn't guarantee "
+        "that's the model under the hood.")
     if not neutral:
-        caveats.append("**Независимого судьи нет**: ответы оценивают те же компании, чьи модели и "
-                       "сравниваются — возможно завышение «своей» модели; оценки судей вспомогательные, "
-                       "вес на ключевых метриках Tools Use/Accuracy (их считает код).")
+        add("**Независимого судьи нет**: ответы оценивают те же компании, чьи модели и сравниваются — "
+            "возможно завышение «своей» модели; оценки судей вспомогательные, вес на ключевых метриках "
+            "Tools Use/Accuracy (их считает код).",
+            "**No independent judge**: answers are scored by the same companies whose models are compared — "
+            "possible self-model inflation; judge scores are auxiliary, weight is on the key metrics "
+            "Tools Use/Accuracy (computed in code).")
     if repeat < 3:
-        caveats.append(f"**Мало повторов** ({repeat}) — Stability на {repeat} точках доверять рано; "
-                       "в Accuracy «уверенно неверное число» = «не названо».")
+        add(f"**Мало повторов** ({repeat}) — Stability на {repeat} точках доверять рано; "
+            "в Accuracy «уверенно неверное число» = «не названо».",
+            f"**Few repeats** ({repeat}) — Stability on {repeat} points is premature to trust; "
+            "in Accuracy a \"confidently wrong number\" = \"not stated\".")
     if mode == "fixed":
-        caveats.append("Режим `fixed`: модели видят аккуратные тестовые данные (фикстуры), а не «грязный» "
-                       "реальный вывод API (для этого `--mode live`).")
-    return caveats
+        add("Режим `fixed`: модели видят аккуратные тестовые данные (фикстуры), а не «грязный» "
+            "реальный вывод API (для этого `--mode live`).",
+            "Mode `fixed`: models see clean test data (fixtures), not the \"messy\" real API output "
+            "(use `--mode live` for that).")
+    return {"ru": ru, "en": en}
 
 
 def _filter_or_die(items, patterns, what, key):
@@ -176,6 +196,29 @@ def _filter_or_die(items, patterns, what, key):
         sys.exit(f"Фильтр {what} {patterns!r} не совпал ни с чем — не запускаю ничего "
                  f"(раньше тут молча уезжал ПОЛНЫЙ грид). Доступно:\n  {names}")
     return picked
+
+
+def _run_dir(ts, out_arg=None):
+    """Каталог прогона: --out override или results/<YYYY-MM-DD>/ (при коллизии по дате — +время,
+    чтобы второй прогон за день не затирал первый)."""
+    if out_arg:
+        return Path(out_arg)
+    base = Path(RESULTS_ROOT) / ts.strftime("%Y-%m-%d")
+    if base.exists():
+        base = Path(RESULTS_ROOT) / ts.strftime("%Y-%m-%d_%H%M%S")
+    return base
+
+
+def _write_reports(aggregates, meta, run_dir):
+    """Двуязычный отчёт results.ru.md + results.en.md в run_dir → dict lang→Path."""
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    paths = {}
+    for lang in ("ru", "en"):
+        p = run_dir / f"{REPORT_STEM}.{lang}.md"
+        p.write_text(report.build_md(aggregates, meta, lang=lang), encoding="utf-8")
+        paths[lang] = p
+    return paths
 
 
 def _report_from(path, out_arg):
@@ -191,10 +234,9 @@ def _report_from(path, out_arg):
     if not meta or not recs_by:
         sys.exit(f"{path}: нет meta/run записей — это не лог ранера")
     aggregates = {label: report.agg(rs) for label, rs in recs_by.items()}
-    out = Path(out_arg or DEFAULT_OUT)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(report.build_md(aggregates, meta), encoding="utf-8")
-    print(f"Отчёт пересобран из {path} → {out}")
+    # По умолчанию — рядом с исходным JSONL (в его дата-папке); --out переопределяет каталог.
+    paths = _write_reports(aggregates, meta, out_arg or Path(path).parent)
+    print(f"Отчёт пересобран из {path} → {paths['ru']} + {paths['en']}")
 
 
 async def _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock):
@@ -227,9 +269,10 @@ async def main():
     ap.add_argument("--concurrency", type=int, default=4,
                     help="параллельных прогонов внутри варианта (кейсы × повторы)")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--out", default=None, help=f"файл отчёта (дефолт {DEFAULT_OUT})")
+    ap.add_argument("--out", default=None,
+                    help="каталог отчёта (дефолт results/<date>/); пишет results.ru.md + results.en.md")
     ap.add_argument("--report-from", default=None,
-                    help="пересобрать отчёт из runs-*.jsonl без запусков (бесплатно)")
+                    help="пересобрать отчёт (ru+en) из results/<date>/runs.jsonl без запусков (бесплатно)")
     args = ap.parse_args()
 
     if args.report_from:
@@ -282,18 +325,17 @@ async def main():
         sys.exit("Нужен RUN_BENCH=1 (защита от случайного платного запуска).")
 
     ts = datetime.now(timezone.utc)
-    jsonl_path = Path(f"results/runs-{ts.strftime('%Y%m%d-%H%M%S')}.jsonl")
-    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    run_dir = _run_dir(ts, args.out)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    jsonl_path = run_dir / JSONL_NAME
     jsonl_lock = asyncio.Lock()
+    # baseline_desc в meta не пишем — build_md выводит его из variants (is_baseline) на нужном языке.
     meta = {"ts": ts.strftime("%Y-%m-%d %H:%M UTC"), "mode": args.mode,
             "repeat": args.repeat, "n_cases": len(cases), "variants": runnable,
             "judges": [j["name"] for j in judges_all] or "—", "neutral": neutral,
             "fixture_version": FIXTURE_VERSION, "git_commit": _git_commit(),
             "jsonl": str(jsonl_path),
-            "baseline_desc": None, "caveats": _build_caveats(args.mode, args.repeat, neutral)}
-    baseline = next((v for v in runnable if v.get("is_baseline")), None)
-    if baseline:
-        meta["baseline_desc"] = "{} (thinking {}, effort {})".format(*report.describe(baseline))
+            "caveats": _build_caveats(args.mode, args.repeat, neutral)}
     with jsonl_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps({"type": "meta", "meta": meta}, ensure_ascii=False) + "\n")
 
@@ -302,16 +344,15 @@ async def main():
         recs = await _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock)
         aggregates[v["label"]] = report.agg(recs)
 
-    out = Path(args.out) if args.out else Path(DEFAULT_OUT)
-    if not args.out and (args.variants or args.cases):
-        print(f"[note] частичный прогон (--variants/--cases): отчёт {out} содержит только "
+    if args.variants or args.cases:
+        print(f"[note] частичный прогон (--variants/--cases): отчёт в {run_dir} содержит только "
               f"выбранные варианты/кейсы — не путать с полным гридом")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(report.build_md(aggregates, meta), encoding="utf-8")
+    paths = _write_reports(aggregates, meta, run_dir)
     total_cost = sum(a["cost_total"] for a in aggregates.values())
     total_errors = sum(a["errors"] for a in aggregates.values())
-    print(f"\nГотово → {out} · сырые данные: {jsonl_path} · потрачено ≈ ${total_cost:.2f} "
-          f"· ошибок {total_errors}/{sum(a['n_runs'] for a in aggregates.values())}")
+    print(f"\nГотово → {paths['ru']} + {paths['en']} · сырые данные: {jsonl_path} · "
+          f"потрачено ≈ ${total_cost:.2f} · ошибок {total_errors}/"
+          f"{sum(a['n_runs'] for a in aggregates.values())}")
 
 
 if __name__ == "__main__":

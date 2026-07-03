@@ -100,10 +100,33 @@ def test_build_md_renders_err_column_and_metadata():
             "variants": [{"label": "V", "model": "claude-opus-4-8", "engine": "anthropic",
                           "vendor": "anthropic", "thinking": "adaptive", "effort": "high"}],
             "judges": ["Claude"], "neutral": [], "fixture_version": "2026-07-03",
-            "git_commit": "abc1234", "jsonl": "results/runs-x.jsonl", "baseline_desc": None,
+            "git_commit": "abc1234", "jsonl": "results/2026-07-03/runs.jsonl",
             "caveats": ["тест"]}
     md = report.build_md(aggs, meta)
     assert "Err" in md and "1/2" in md          # колонка ошибок
     assert "abc1234" in md                        # git-коммит в метаданных
-    assert "runs-x.jsonl" in md                   # ссылка на сырые данные
+    assert "results/2026-07-03/runs.jsonl" in md  # ссылка на сырые данные
     assert "average of the four" not in md.lower()  # старое ложное определение Score ушло
+
+
+def test_build_md_bilingual_and_caveats_by_lang():
+    """build_md(lang=...) даёт ru/en с кросс-ссылками, baseline из variants, оговорками своего языка."""
+    aggs = {"V": report.agg([_rec("a")])}
+    meta = {"ts": "2026-07-03 12:00 UTC", "mode": "fixed", "repeat": 3, "n_cases": 1,
+            "variants": [{"label": "V", "model": "claude-opus-4-8", "engine": "anthropic",
+                          "vendor": "anthropic", "thinking": "adaptive", "effort": "high",
+                          "is_baseline": True}],
+            "judges": ["Claude"], "neutral": [], "fixture_version": "2026-07-03",
+            "git_commit": "abc1234", "jsonl": "results/2026-07-03/runs.jsonl",
+            "caveats": {"ru": ["оговорка-ру"], "en": ["caveat-en"]}}
+    ru = report.build_md(aggs, meta, lang="ru")
+    en = report.build_md(aggs, meta, lang="en")
+    assert "Сравнение моделей" in ru and "Все варианты" in ru
+    assert "[🇬🇧 English](results.en.md)" in ru            # кросс-ссылка на соседний файл
+    assert "прод askads — Opus 4.8 (thinking adaptive" in ru  # baseline выведен из variants
+    assert "Model comparison" in en and "All variants" in en
+    assert "[🇷🇺 Русский](results.ru.md)" in en
+    assert "production — Opus 4.8 (thinking adaptive" in en
+    # оговорки — строго своего языка, чужие не протекают
+    assert "оговорка-ру" in ru and "caveat-en" not in ru
+    assert "caveat-en" in en and "оговорка-ру" not in en

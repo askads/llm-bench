@@ -91,13 +91,14 @@ def test_errored_run_scored_as_error_not_perfect(monkeypatch):
 
 
 def test_jsonl_roundtrip_report_from(tmp_path, monkeypatch):
-    """Отчёт пересобирается из JSONL без запусков (R13)."""
+    """Отчёт (ru+en) пересобирается из JSONL без запусков (R13)."""
     jsonl = tmp_path / "runs.jsonl"
     meta = {"ts": "2026-07-03 12:00 UTC", "mode": "fixed", "repeat": 2, "n_cases": 1,
             "variants": [{"label": "V", "model": "claude-opus-4-8", "engine": "anthropic",
                           "vendor": "anthropic", "thinking": "adaptive", "effort": "high"}],
             "judges": ["Claude"], "neutral": [], "fixture_version": "2026-07-03",
-            "git_commit": "abc1234", "jsonl": str(jsonl), "baseline_desc": None, "caveats": ["c"]}
+            "git_commit": "abc1234", "jsonl": str(jsonl),
+            "caveats": {"ru": ["оговорка"], "en": ["caveat"]}}
     rec = {"case": "a", "dimension": "numeric", "turn_type": "single", "tool": 5.0, "numeric": 5.0,
            "has_golden": True, "soft_quality": 5.0, "soft_russian": 5.0, "cost": 0.01,
            "cost_wasted": 0.0, "retried": False, "error": None, "composite": 5.0}
@@ -105,7 +106,10 @@ def test_jsonl_roundtrip_report_from(tmp_path, monkeypatch):
              {"type": "run", "variant": "V", "case": "a", "repeat": 0, "rec": rec,
               "answer": "...", "tool_trace": [], "usage": {}}]
     jsonl.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in lines), encoding="utf-8")
-    out = tmp_path / "report.md"
-    runner._report_from(str(jsonl), str(out))
-    md = out.read_text(encoding="utf-8")
-    assert "Opus 4.8" in md and "abc1234" in md
+    # out=None → отчёт ложится рядом с JSONL, в его дата-папке (обе языковые версии)
+    runner._report_from(str(jsonl), None)
+    ru = (tmp_path / "results.ru.md").read_text(encoding="utf-8")
+    en = (tmp_path / "results.en.md").read_text(encoding="utf-8")
+    assert "Opus 4.8" in ru and "abc1234" in ru and "Все варианты" in ru and "оговорка" in ru
+    assert "Opus 4.8" in en and "All variants" in en and "caveat" in en
+    assert "average of the four" not in en.lower()  # старое ложное определение Score ушло

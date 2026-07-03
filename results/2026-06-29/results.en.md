@@ -1,9 +1,9 @@
 # Model comparison for AskAds (Claude / GLM / GPT) — run from 2026-06-29 UTC
 
-[🇷🇺 Русский](model-comparison-grid.ru.md) · 🇬🇧 English
+[🇷🇺 Русский](results.ru.md) · 🇬🇧 English
 
 > ⚠️ **Numbers are stale (2026-06-29 run).** Produced BEFORE the scoring/fixture fixes of
-> 2026-07-03 (see `../REVIEW.md`): Accuracy entity-anchoring, the Stability formula (now σ
+> 2026-07-03 (see `../../REVIEW.md`): Accuracy entity-anchoring, the Stability formula (now σ
 > between repeats within a case), GPT cache multipliers, and some fixtures all changed. These
 > values were NOT recomputed — regenerate with a fresh run. The "Score = average of the four
 > metrics" definition below is also imprecise: Score is the mean of the _available_ components
