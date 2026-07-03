@@ -41,7 +41,7 @@ llmbench/
   report.py     # record aggregation, Stability/Score/Pareto, markdown build (CI-tested)
   runner.py     # variant grid x cases x repeat, JSONL persistence, report
 tests/          # offline self-test: scoring + aggregation + runner pipeline (all in CI)
-results/        # per-date folders: results.ru.md + results.en.md (in VCS) + raw runs.jsonl (gitignored)
+results/        # per-date folders: results.ru.md + results.en.md + raw runs.jsonl (all in VCS for fixed)
 ```
 
 ## Running
@@ -86,9 +86,11 @@ are rebuilt from it for free, with no repeat model calls —
 ```bash
 python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 ```
-`runs.jsonl` is gitignored (raw data), the `.md` reports are in VCS. Top-3, prose and takeaways
-are added by hand on top of the generated grid in the same dated folder. A second run on the
-same day doesn't clobber the first (a time suffix is added on a date collision).
+`runs.jsonl` is **committed for fixed runs** (fake account, no private data; ~230 KB packed).
+⚠️ **Live runs contain real account data — don't commit their `runs.jsonl`** (keep local / in a
+private S3). The `.md` reports are in VCS. Top-3, prose and takeaways are added by hand on top of
+the generated grid in the same dated folder. A second run on the same day doesn't clobber the
+first (a time suffix is added on a date collision).
 
 **Interrupted (out of credits, Ctrl-C)?** Completed runs are already in `runs.jsonl` (written
 line-by-line as they finish) — top up and catch up the rest, paying only for what's left:
