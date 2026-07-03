@@ -15,7 +15,30 @@ Two modes:
 The engine and MCP client are **decoupled from askads** (extracted into `llmbench/`), so the
 repository is self-contained.
 
-> Full review of the harness and the list of fixed issues — see [`REVIEW.md`](REVIEW.md).
+## Terms
+
+How to read the results table:
+
+| Metric | What | Computed by |
+|---|---|---|
+| **Accuracy** | number correctness (CTR/CPC/CPA/spend) + right campaign attribution (entity anchoring), nothing invented | code |
+| **Tools Use** | right tools called successfully, in the right order, nothing extra/forbidden | code |
+| **Edge Cases** | behavior in edge cases (empty report, refusing a bid change, clarifying) | judges |
+| **Lang quality** | naturalness and clarity of the Russian | judges |
+| **Score** | a run's overall score = mean of the available components (see "How Score is computed") | — |
+| **Cost per Answer** | mean cost of one answer, USD | — |
+| **Score per USD** | "quality per dollar" (Score ÷ cost); higher = better value | — |
+| **Stability** | `5 − spread of Score between repeats of a case`; higher = more stable | — |
+| **⭐ (Pareto)** | best quality/price balance — a variant that can't be both beaten and undercut | — |
+
+## Latest run results
+
+**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a
+fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed
+scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best
+quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the
+quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is
+historical, before the scoring fixes.
 
 ## What is scored, and by whom
 
@@ -65,17 +88,36 @@ npm install                       # installs mcp-yandex-direct, etc.
 RUN_BENCH=1 ANTHROPIC_API_KEY=… YANDEX_DIRECT_TOKEN=… \
   python -m llmbench.runner --mode live --variants "GLM-4.6 disabled" --judges off
 ```
-Account-token env: `YANDEX_DIRECT_TOKEN` (+ optional `YANDEX_DIRECT_LOGIN`),
-`YANDEX_METRIKA_TOKEN`, `VK_ADS_TOKEN`. Override a server path with
-`MCP_PATH_YANDEX_DIRECT=/path/to/dist/index.js`. Live mode preflights (tokens + server
-presence) BEFORE the first paid call.
 
-Flags: `--variants`, `--cases` (a typo in the filter is an error, not a silent full grid),
-`--repeat`, `--judges panel|neutral|off`, `--concurrency N` (parallel runs within a variant),
-`--dry-run` (shows the estimate without keys), `--out`, `--report-from <jsonl>`,
-`--resume <jsonl>` (catch up an interrupted run). The variant
-list (model x thinking/effort/reasoning) lives in `llmbench/runner.py`; adding a model is one
-line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
+Account-token env (for `--mode live`):
+
+| Env | Purpose |
+|---|---|
+| `YANDEX_DIRECT_TOKEN` | Yandex Direct token (required for live) |
+| `YANDEX_DIRECT_LOGIN` | optional — account login if the token is an agency token |
+| `YANDEX_METRIKA_TOKEN` | Metrica token (for metrika cases) |
+| `VK_ADS_TOKEN` | VK Ads token |
+| `MCP_PATH_YANDEX_DIRECT` | optional — override the MCP server path (`/path/to/dist/index.js`) |
+
+Live mode preflights (tokens + server presence) BEFORE the first paid call.
+
+Runner flags:
+
+| Flag | What it does |
+|---|---|
+| `--mode fixed\|live` | fixtures (default) or real MCP servers |
+| `--variants <substrings…>` | which variants to run (a typo in the filter is an error, not a silent full grid) |
+| `--cases <id…>` | which cases to run (same typo guard) |
+| `--repeat N` | repeats per case (default 2) |
+| `--judges panel\|neutral\|off` | judge panel / neutral only / no judges |
+| `--concurrency N` | parallel runs within a variant (default 4) |
+| `--dry-run` | show the estimate (run/judge counts) without keys or spend |
+| `--out <dir>` | report directory (default `results/<date>/`) |
+| `--report-from <jsonl>` | rebuild the report (ru+en) from `runs.jsonl` for free |
+| `--resume <jsonl>` | catch up an interrupted run (only missing/failed keys) |
+
+The variant list (model x thinking/effort/reasoning) lives in `llmbench/runner.py`; adding a
+model is one line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
 
 ## Artifacts and re-scoring
 
@@ -103,22 +145,16 @@ also add a key (e.g. `OPENAI_API_KEY`) and backfill variants skipped in the orig
 
 ## How Score is computed
 
-A run's `Score` is the mean of the **available** components: Tools Use (always), Accuracy (if
-the case has golden facts), Edge Cases and Lang quality (if judges ran). The set depends on
-the case, so Score is comparable across variants (everyone runs the same cases) but is NOT
-equal to the mean of the four report columns. Failed runs (API errors, token-limit
-truncation) are excluded from metrics and shown in a separate `Err` column.
-`Stability = 5 − mean spread of Score between repeats of the same case` (not across cases of
-differing difficulty).
+A run's `Score` is the **mean of the available components** (not all four columns at once):
 
-## Latest run results
+- **Tools Use** — always;
+- **Accuracy** — if the case has golden facts (numeric cases);
+- **Edge Cases** and **Lang quality** — if judges ran.
 
-**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a
-fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed
-scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best
-quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the
-quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is
-historical, before the scoring fixes.
+The component set depends on the case, so:
+- Score is **comparable** across variants (everyone runs the same cases) but is **not equal** to the mean of the four report columns;
+- **failed runs** (API errors, token-limit truncation) are excluded from metrics — they show in a separate `Err` column;
+- **`Stability = 5 − mean spread (σ) of Score between repeats of the same case`** — it captures model noise, not case difficulty.
 
 ## Known limitations
 
