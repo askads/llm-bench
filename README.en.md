@@ -16,29 +16,42 @@ How to read the results table:
 
 | Metric | What | Computed by |
 |---|---|---|
-| **Accuracy** | number correctness (CTR/CPC/CPA/spend) + right campaign attribution (entity anchoring), nothing invented | code |
-| **Tools Use** | right tools called successfully, in the right order, nothing extra/forbidden | code |
-| **Edge Cases** | behavior in edge cases (empty report, refusing a bid change, clarifying) | judges |
-| **Lang quality** | naturalness and clarity of the Russian | judges |
+| **Accuracy** | number correctness (CTR/CPC/CPA/spend) + right campaign attribution (entity anchoring), nothing invented | Scored by code |
+| **Tools Use** | right tools called successfully, in the right order, nothing extra/forbidden | Scored by code |
+| **Edge Cases** | behavior in edge cases (empty report, refusing a bid change, clarifying) | Scored by LLM judges |
+| **Lang quality** | naturalness and clarity of the Russian | Scored by LLM judges |
 | **Score** | a run's overall score = mean of the available components (see "How Score is computed") | — |
 | **Cost per Answer** | mean cost of one answer, USD | — |
 | **Score per USD** | "quality per dollar" (Score ÷ cost); higher = better value | — |
 | **Stability** | `5 − spread of Score between repeats of a case`; higher = more stable | — |
-| **⭐ (Pareto)** | best quality/price balance — a variant that can't be both beaten and undercut | — |
+| **⭐** | best quality/price balance: no other variant is both better and cheaper | — |
+
+## How Score is computed
+
+A run's `Score` is the **mean of the available components** (not all four columns at once):
+
+- **Tools Use** — always;
+- **Accuracy** — if the case has golden facts (numeric cases);
+- **Edge Cases** and **Lang quality** — if judges ran.
+
+The component set depends on the case, so:
+- Score is **comparable** across variants (everyone runs the same cases) but is **not equal** to the mean of the four report columns;
+- **failed runs** (API errors, token-limit truncation) are excluded from metrics — they show in a separate `Err` column;
+- **`Stability = 5 − mean spread (σ) of Score between repeats of the same case`** — it captures model noise, not case difficulty.
 
 ## Latest run results
 
-**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is historical, before the scoring fixes.
+**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed scoring.
 
-## What is scored, and by whom
+Top-3 by quality/price balance (⭐):
 
-| Dimension | By | Where |
-|---|---|---|
-| **Tool-Use** (right tools succeed / order / call cap) | code | `scoring.score_tooluse` |
-| **Numeric-Accuracy** (number correctness + entity anchoring, "don't invent CPA") | code | `scoring.score_numeric` |
-| Interpretation / Russian / Edge handling | judge panel | `judges.py` |
+| LLM | Thinking | Score | Cost/answer | Why it wins |
+|---|---|--:|--:|---|
+| **GLM-4.6** | no | 4.62 | $0.003 | best quality/price, ~27× cheaper than Opus |
+| **GPT-4.1** | no | 4.93 | $0.013 | surprisingly strong and cheap |
+| **Opus 4.8** | adaptive/high | 4.96 | $0.081 | quality ceiling |
 
-Key metrics are the backbone of the comparison; judges are strictly secondary.
+**Sonnet 4.6 (current production)** drops on edge cases (Edge ~3.3 — invents causes on an empty slice, doesn't clarify an ambiguous question). The `results/2026-06-29/` run is historical, before the scoring fixes.
 
 ## Layout
 
@@ -83,8 +96,7 @@ Account-token env (for `--mode live`):
 
 | Env | Purpose |
 |---|---|
-| `YANDEX_DIRECT_TOKEN` | Yandex Direct token (required for live) |
-| `YANDEX_DIRECT_LOGIN` | optional — account login if the token is an agency token |
+| `YANDEX_DIRECT_TOKEN` (+ opt. `YANDEX_DIRECT_LOGIN`) | Yandex Direct token — required for live; LOGIN if the token is an agency token |
 | `YANDEX_METRIKA_TOKEN` | Metrica token (for metrika cases) |
 | `VK_ADS_TOKEN` | VK Ads token |
 | `MCP_PATH_YANDEX_DIRECT` | optional — override the MCP server path (`/path/to/dist/index.js`) |
@@ -121,19 +133,6 @@ python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 RUN_BENCH=1 …keys… python -m llmbench.runner --resume results/2026-07-03/runs.jsonl
 ```
 `--resume` skips already-successful `(variant, case, repeat)` keys, runs only the failed/missing ones, appends to the same file, and rebuilds the report (on duplicates, success wins). You can also add a key (e.g. `OPENAI_API_KEY`) and backfill variants skipped in the original run.
-
-## How Score is computed
-
-A run's `Score` is the **mean of the available components** (not all four columns at once):
-
-- **Tools Use** — always;
-- **Accuracy** — if the case has golden facts (numeric cases);
-- **Edge Cases** and **Lang quality** — if judges ran.
-
-The component set depends on the case, so:
-- Score is **comparable** across variants (everyone runs the same cases) but is **not equal** to the mean of the four report columns;
-- **failed runs** (API errors, token-limit truncation) are excluded from metrics — they show in a separate `Err` column;
-- **`Stability = 5 − mean spread (σ) of Score between repeats of the same case`** — it captures model noise, not case difficulty.
 
 ## Known limitations
 
