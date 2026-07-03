@@ -8,7 +8,6 @@ node_modules/
 .pytest_cache/
 .DS_Store
 
-# Сырые артефакты прогонов и авто-сгенерированный отчёт (курируемые .ru/.en.md — под VCS).
+# Сырые per-run данные прогонов (отчёты results.ru/en.md в дата-папках — под VCS).
+results/**/runs.jsonl
 results/runs-*.jsonl
-results/model-comparison-grid.generated.md
-results/model-comparison-grid.partial.md

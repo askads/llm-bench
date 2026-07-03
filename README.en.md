@@ -41,7 +41,7 @@ llmbench/
   report.py     # record aggregation, Stability/Score/Pareto, markdown build (CI-tested)
   runner.py     # variant grid x cases x repeat, JSONL persistence, report
 tests/          # offline self-test: scoring + aggregation + runner pipeline (all in CI)
-results/        # curated reports (.ru/.en.md) + generated report and runs-*.jsonl (gitignored)
+results/        # per-date folders: results.ru.md + results.en.md (in VCS) + raw runs.jsonl (gitignored)
 ```
 
 ## Running
@@ -78,15 +78,16 @@ line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
 
 ## Artifacts and re-scoring
 
-Every run writes **`results/runs-<ts>.jsonl`** — one record per run (answer, tool trace,
-usage, all scores, errors). This is the source of truth: the report is rebuilt from it for
-free, with no repeat model calls —
+Every run lands in a dated folder **`results/<date>/`**: the raw `runs.jsonl` (one record per
+run — answer, tool trace, usage, all scores, errors) and the bilingual generated report
+`results.ru.md` + `results.en.md`. `runs.jsonl` is the source of truth: both report versions
+are rebuilt from it for free, with no repeat model calls —
 ```bash
-python -m llmbench.runner --report-from results/runs-20260703-120000.jsonl
+python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 ```
-The runner writes the generated report to `results/model-comparison-grid.generated.md`
-(gitignored) so it never clobbers the hand-curated `model-comparison-grid.ru.md` / `…en.md`
-(top-3, prose, bilingual) — those are edited by hand from the generated one.
+`runs.jsonl` is gitignored (raw data), the `.md` reports are in VCS. Top-3, prose and takeaways
+are added by hand on top of the generated grid in the same dated folder. A second run on the
+same day doesn't clobber the first (a time suffix is added on a date collision).
 
 ## How Score is computed
 
@@ -100,9 +101,9 @@ differing difficulty).
 
 ## Latest run results
 
-`results/model-comparison-grid.ru.md` (+ English `…en.md`) — curated summary + Pareto
-frontier. ⚠️ Their current numbers are from the 2026-06-29 run, BEFORE the scoring/fixture
-fixes (see `REVIEW.md`); regenerate with a fresh run.
+The latest run is in the newest dated folder `results/<date>/` (`results.ru.md` + English
+`results.en.md`) — curated summary + Pareto frontier. ⚠️ The numbers in `results/2026-06-29/`
+predate the scoring/fixture fixes (see `REVIEW.md`); regenerate with a fresh run.
 
 ## Known limitations
 
