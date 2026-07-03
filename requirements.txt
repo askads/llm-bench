@@ -1,4 +1,6 @@
-anthropic        # Claude нативно + GLM через Anthropic-совместимый base_url (z.ai)
-openai           # GPT-кандидат (OpenAI-loop) + GPT-судья
-mcp              # stdio-клиент к MCP-серверам (live-режим) + типы для фикстур
-# google-genai   # опционально: Gemini-судья (нейтральный, когда GPT — кандидат)
+# Рантайм-зависимости бенчмарка. Пины — минимальные совместимые версии (>=); верхних
+# границ нет намеренно: SDK моделей часто обновляются, а мажорную несовместимость ловит CI.
+anthropic>=0.69       # Claude нативно + GLM через Anthropic-совместимый base_url (z.ai)
+openai>=1.100         # GPT-кандидат (OpenAI-loop) + GPT-судья; max_completion_tokens
+mcp>=1.5              # stdio-клиент к MCP-серверам (live-режим) + типы для фикстур
+# google-genai>=1.0   # опционально: Gemini-судья (нейтральный, когда GPT — кандидат)

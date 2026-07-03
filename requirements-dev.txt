@@ -1,3 +1,3 @@
 -r requirements.txt
-pytest==8.*
-google-genai     # Gemini-судья (опциональный нейтральный судья)
+pytest>=8,<10        # офлайн self-test; локально бывает 9.x, в CI закрепим (см. ci.yml)
+google-genai>=1.0   # Gemini-судья (опциональный нейтральный судья)

@@ -13,5 +13,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements-dev.txt
-      # Только офлайн self-test (без сети/денег/ключей). Тяжёлый прогон — вручную (RUN_BENCH=1).
-      - run: pytest -q tests/test_fixtures.py
+      # Импорт ВСЕХ модулей (в т.ч. engines/judges/runner/report) — синтаксис/импорты
+      # ловятся до тестов; раньше эти модули CI не видел (REVIEW.md R37).
+      - run: python -c "import llmbench.core, llmbench.fixtures, llmbench.mcp, llmbench.scoring, llmbench.cases, llmbench.engines, llmbench.judges, llmbench.report, llmbench.runner"
+      # Офлайн self-test (без сети/денег/ключей). Тяжёлый прогон — вручную (RUN_BENCH=1).
+      - run: pytest -q

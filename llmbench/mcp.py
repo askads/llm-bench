@@ -40,6 +40,27 @@ def _server_path(platform: str) -> str:
     return os.path.join(_ROOT, "node_modules", pkg, "dist", "index.js")
 
 
+# Переменные, без которых реальные node-серверы часто не работают (прокси, CA, домашняя
+# директория) — пробрасываем как есть, если заданы.
+_PASSTHROUGH_ENV = ("HOME", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+                    "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "NODE_OPTIONS", "TMPDIR")
+
+
+def preflight_live(platforms) -> list[str]:
+    """Проверка live-режима ДО запуска грида (и трат): токены в env, серверы собраны.
+    Возвращает список проблем; пустой список = можно ехать."""
+    problems = []
+    for p in sorted(platforms):
+        cfg = SERVERS[p]
+        if not os.environ.get(cfg["token_env"]):
+            problems.append(f"{p}: нет {cfg['token_env']} в env")
+        path = _server_path(p)
+        if not os.path.exists(path):
+            problems.append(f"{p}: не найден MCP-сервер {path} — выполни `npm install` "
+                            f"или задай MCP_PATH_{p.upper()}")
+    return problems
+
+
 @asynccontextmanager
 async def live_session(platform: str):
     """Спавн реального MCP-сервера по stdio. Токен — из env (см. SERVERS)."""
@@ -47,11 +68,18 @@ async def live_session(platform: str):
     token = os.environ.get(cfg["token_env"])
     if not token:
         raise RuntimeError(f"нет {cfg['token_env']} в env для live-режима ({platform})")
+    server = _server_path(platform)
+    if not os.path.exists(server):
+        raise RuntimeError(f"MCP-сервер не найден: {server} — выполни `npm install` "
+                           f"или задай MCP_PATH_{platform.upper()}")
     env = {"PATH": os.environ.get("PATH", ""), cfg["token_env"]: token, **cfg.get("extra", {})}
+    for var in _PASSTHROUGH_ENV:
+        if os.environ.get(var):
+            env[var] = os.environ[var]
     login_env = cfg.get("login_env")
     if login_env and os.environ.get(login_env):
         env[login_env] = os.environ[login_env]
-    params = StdioServerParameters(command="node", args=[_server_path(platform)], env=env)
+    params = StdioServerParameters(command="node", args=[server], env=env)
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             init = await session.initialize()

@@ -3,6 +3,11 @@
 golden_facts выводятся из fixtures.metrics() — единый источник правды с тем, что видит модель.
 Покрытие: tool-use (многошаг/мультитёрн/Метрика), numeric (точность + absence «не выдумывать
 CPA»), edge (пустой срез, отказ менять ставку, уточнение, clamp-robustness).
+
+Анкоринг фактов: `aliases` — metric-алиасы (обязательны всегда); `entity` — алиасы кампании,
+обязательны в кейсах, где в ответе фигурирует несколько кампаний (иначе число одной кампании
+зачтётся другой). В однокампейн-кейсах entity не требуем: вопрос уже фиксирует кампанию, а
+модель не обязана повторять её название рядом с каждым числом.
 """
 from __future__ import annotations
 
@@ -30,13 +35,19 @@ class BenchCase:
         return "multi" if len(self.turns) > 1 else "single"
 
 
-def _fact(key, value, aliases, *, tol=0.05, required=True):
-    return {"key": key, "value": value, "tolerance": tol, "required": required, "aliases": aliases}
+def _fact(key, value, aliases, *, entity=None, tol=0.05, required=True, value_kind="money"):
+    # value_kind: 'money' (₽-метрика: CPA/расход/CPC) или 'count' (счётная: достижения цели).
+    # Определяет, по какой единице числа отбираются в набор метрики (см. scoring._wrong_unit).
+    return {"key": key, "value": value, "tolerance": tol, "required": required,
+            "aliases": aliases, "entity": entity, "value_kind": value_kind}
 
 
 def _absent(key, aliases):
     return {"key": key, "kind": "absent", "aliases": aliases}
 
+
+_RSYA = ["рся", "rsya"]
+_MSK = ["москва", "поиск-москва"]
 
 CASES: list[BenchCase] = [
     BenchCase(
@@ -46,24 +57,29 @@ CASES: list[BenchCase] = [
         turns=["Сравни мои кампании по эффективности за последнюю неделю: где сливается бюджет, "
                "а где отдача лучше? Возьми данные через инструменты."],
         trace={"tools": ["get_statistics"], "allow": ["list_campaigns", "get_account_info"], "max_calls": 4},
-        golden_facts=[_fact("cpa_rsya", _M[12346]["cpa"], ["РСЯ", "CPA"], tol=0.05),
-                      _fact("cpa_poisk", _M[12345]["cpa"], ["Москва", "CPA"], tol=0.05),
-                      _fact("cost_rsya", _M[12346]["cost"], ["РСЯ", "расход", "потрач"], tol=0.02, required=False),
-                      _fact("cost_poisk", _M[12345]["cost"], ["Москва", "расход", "потрач"], tol=0.02, required=False)]),
+        # В ответе несколько кампаний → у каждого факта обязателен entity-якорь.
+        golden_facts=[_fact("cpa_rsya", _M[12346]["cpa"], ["CPA", "стоимость конверси", "цена конверси"],
+                            entity=_RSYA, tol=0.05),
+                      _fact("cpa_poisk", _M[12345]["cpa"], ["CPA", "стоимость конверси", "цена конверси"],
+                            entity=_MSK, tol=0.05),
+                      _fact("cost_rsya", _M[12346]["cost"], ["расход", "потрат", "потрач"],
+                            entity=_RSYA, tol=0.02, required=False),
+                      _fact("cost_poisk", _M[12345]["cost"], ["расход", "потрат", "потрач"],
+                            entity=_MSK, tol=0.02, required=False)]),
     BenchCase(
         id="multi_turn_rsya", dimension="tool",
         rubric="Во втором ответе назвать расход и CPA кампании РСЯ-Россия из данных; числа корректны.",
         turns=["Какие у меня есть кампании?",
                "Покажи по РСЯ-Россия за последнюю неделю: сколько потратили и какой CPA?"],
         trace={"tools": ["get_statistics"], "allow": ["list_campaigns"], "max_calls": 4},
-        golden_facts=[_fact("cost_rsya", _M[12346]["cost"], ["РСЯ", "расход", "потрач"], tol=0.02),
-                      _fact("cpa_rsya", _M[12346]["cpa"], ["РСЯ", "CPA"], tol=0.05)]),
+        golden_facts=[_fact("cost_rsya", _M[12346]["cost"], ["расход", "потрат", "потрач"], tol=0.02),
+                      _fact("cpa_rsya", _M[12346]["cpa"], ["CPA", "стоимость конверси"], tol=0.05)]),
     BenchCase(
         id="numeric_cpc_poisk", dimension="numeric",
         rubric="Назвать расход и среднюю цену клика (CPC) Поиск-Москва из данных; числа корректны.",
         turns=["Сколько я потратил на Поиск-Москва за последнюю неделю и какая средняя цена клика?"],
         trace={"tools": ["get_statistics"], "allow": ["list_campaigns"], "max_calls": 3},
-        golden_facts=[_fact("cost_poisk", _M[12345]["cost"], ["Москва", "расход", "потрач"], tol=0.02),
+        golden_facts=[_fact("cost_poisk", _M[12345]["cost"], ["расход", "потрат", "потрач"], tol=0.02),
                       _fact("cpc_poisk", _M[12345]["cpc"], ["клик", "CPC", "цена клика"], tol=0.05)]),
     BenchCase(
         id="empty_period", dimension="edge",
@@ -89,8 +105,11 @@ CASES: list[BenchCase] = [
                "нельзя, предложить настроить цели. Может назвать расход и CPC. НЕ выдумывать CPA.",
         turns=["Какая стоимость конверсии (CPA) по кампании Бренд за последнюю неделю?"],
         trace={"tools": ["get_statistics"], "allow": ["list_campaigns"], "max_calls": 3},
-        golden_facts=[_absent("cpa_brand", ["CPA", "стоимость конверси", "цена конверси", "за конверси"]),
-                      _fact("cost_brand", _M[12348]["cost"], ["Бренд", "расход", "потрач"], tol=0.02, required=False),
+        golden_facts=[_absent("cpa_brand", ["CPA", "стоимость конверси", "цена конверси",
+                                            "стоимость одной конверси", "цена одной конверси",
+                                            "конверсия обходится", "обходится в", "за конверси"]),
+                      _fact("cost_brand", _M[12348]["cost"], ["расход", "потрат", "потрач"],
+                            tol=0.02, required=False),
                       _fact("cpc_brand", _M[12348]["cpc"], ["клик", "CPC"], tol=0.05, required=False)]),
     BenchCase(
         id="clamp_robustness", dimension="edge",
@@ -105,7 +124,11 @@ CASES: list[BenchCase] = [
         turns=["Сколько конверсий «Оформление заказа» принёс сайт за последнюю неделю по Метрике?"],
         trace={"tools": ["metrika_list_counters", "metrika_list_goals", "metrika_get_statistics"],
                "ordered": True, "max_calls": 5},
-        golden_facts=[_fact("goal_reaches", 612, ["Оформление заказа", "конверси", "достижени", "цел"], tol=0.02)]),
+        # 'цел' убран: подстрочно матчил «в целом»; берём формы, не встречающиеся в других словах.
+        # value_kind=count: 612 — число достижений цели, единица не денежная.
+        golden_facts=[_fact("goal_reaches", acc.METRIKA_GOAL_REACHES,
+                            ["Оформление заказа", "конверси", "достижени", "цель", "цели", "целей"],
+                            tol=0.02, value_kind="count")]),
 ]
 
 
