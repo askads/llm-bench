@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from llmbench import report, scoring
-from llmbench.cases import CASES
+from llmbench.cases import CASES, by_id
 from llmbench.core import MODEL_RATES, PLATFORM_YANDEX_METRIKA
 from llmbench.engines import run_anthropic, run_openai
 from llmbench.fixtures import FIXTURE_VERSION
@@ -221,25 +221,78 @@ def _write_reports(aggregates, meta, run_dir):
     return paths
 
 
-def _report_from(path, out_arg):
-    meta, recs_by = None, {}
+def _iter_runs(path):
+    """Итератор run-записей JSONL (без meta). Оборванную последнюю строку прерванного прогона
+    пропускаем, а не падаем."""
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        obj = json.loads(line)
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if obj.get("type") == "run":
+            yield obj
+
+
+def _prefer(new_rec, old_rec):
+    """При дублях ключа (variant,case,repeat): успешный побеждает упавший; при равном статусе —
+    более поздняя строка (дописанная при --resume после долива баланса) побеждает."""
+    new_ok, old_ok = new_rec.get("error") is None, old_rec.get("error") is None
+    return new_ok if new_ok != old_ok else True
+
+
+def _load_runs(path):
+    """Читает runs.jsonl → (meta, {variant: agg}); дедуп по (variant,case,repeat) через _prefer.
+    Для обычного прогона дублей нет (no-op); для --resume схлопывает старую ошибку и новый успех."""
+    meta, best = None, {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue  # оборванная строка прерванного прогона
         if obj["type"] == "meta":
             meta = obj["meta"]
         elif obj["type"] == "run":
-            recs_by.setdefault(obj["variant"], []).append(obj["rec"])
-    if not meta or not recs_by:
+            key = (obj["variant"], obj["case"], obj["repeat"])
+            if key not in best or _prefer(obj["rec"], best[key]["rec"]):
+                best[key] = obj
+    if not meta or not best:
         sys.exit(f"{path}: нет meta/run записей — это не лог ранера")
-    aggregates = {label: report.agg(rs) for label, rs in recs_by.items()}
+    recs_by = {}
+    for obj in best.values():
+        recs_by.setdefault(obj["variant"], []).append(obj["rec"])
+    return meta, {label: report.agg(rs) for label, rs in recs_by.items()}
+
+
+def _successful_keys(path):
+    """(variant,case,repeat), которые уже посчитаны БЕЗ ошибки — их --resume пропускает."""
+    return {(o["variant"], o["case"], o["repeat"]) for o in _iter_runs(path)
+            if o["rec"].get("error") is None}
+
+
+def _finalize(jsonl_path, out_dir):
+    """Пересобирает двуязычный отчёт из (возможно, дописанного) JSONL и печатает итог."""
+    meta, aggregates = _load_runs(str(jsonl_path))
+    paths = _write_reports(aggregates, meta, out_dir)
+    total_cost = sum(a["cost_total"] for a in aggregates.values())
+    total_errors = sum(a["errors"] for a in aggregates.values())
+    total_n = sum(a["n_runs"] for a in aggregates.values())
+    print(f"\nГотово → {paths['ru']} + {paths['en']} · сырые данные: {jsonl_path} · "
+          f"потрачено ≈ ${total_cost:.2f} · ошибок {total_errors}/{total_n}")
+    return paths
+
+
+def _report_from(path, out_arg):
+    meta, aggregates = _load_runs(path)
     # По умолчанию — рядом с исходным JSONL (в его дата-папке); --out переопределяет каталог.
     paths = _write_reports(aggregates, meta, out_arg or Path(path).parent)
     print(f"Отчёт пересобран из {path} → {paths['ru']} + {paths['en']}")
 
 
-async def _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock):
+async def _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock, skip=frozenset()):
     sem = asyncio.Semaphore(args.concurrency)
 
     async def one(case, ri):
@@ -249,14 +302,84 @@ async def _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path
         line = {"type": "run", "variant": v["label"], "case": case.id, "repeat": ri, "rec": rec,
                 "answer": rr["answer"], "tool_trace": rr["tool_trace"], "usage": rr["usage"]}
         async with jsonl_lock:
-            with jsonl_path.open("a", encoding="utf-8") as f:
+            with Path(jsonl_path).open("a", encoding="utf-8") as f:
                 f.write(json.dumps(line, ensure_ascii=False) + "\n")
         print(f"  {v['label']:<24} {case.id:<20} r{ri} tool={rec['tool']} num={rec['numeric']} "
               f"soft={rec['soft_quality']} ${rec['cost']:.5f}" + (" RETRY" if rec["retried"] else "")
               + (f" ERR={rec['error'][:60]}" if rec["error"] else ""))
         return rec
 
-    return await asyncio.gather(*[one(c, ri) for c in cases for ri in range(args.repeat)])
+    # --resume: пропускаем (variant,case,repeat), уже посчитанные без ошибки.
+    todo = [(c, ri) for c in cases for ri in range(args.repeat)
+            if (v["label"], c.id, ri) not in skip]
+    return await asyncio.gather(*[one(c, ri) for c, ri in todo])
+
+
+async def _run_grid(runnable, cases, run_args, judges_all, candidate_vendors, jsonl_path, jsonl_lock, skip=frozenset()):
+    """Гоняет все варианты (кейсы × повторы, минус skip), дозаписывая в jsonl_path."""
+    for v in runnable:
+        await _run_variant(v, cases, run_args, judges_all, candidate_vendors, jsonl_path, jsonl_lock, skip)
+
+
+async def _resume(args):
+    """Догоняет прерванный прогон: дочитывает уже успешные ключи из runs.jsonl, гоняет только
+    недостающие/упавшие, ДОПИСЫВАЕТ в тот же файл (meta и старые строки не трогаем), затем
+    пересобирает отчёт. Сценарий: обнулился баланс → долил → продолжил, платишь за остаток."""
+    path = Path(args.resume)
+    if not path.exists():
+        sys.exit(f"{path}: файла нет — нечего возобновлять")
+    meta, _ = _load_runs(str(path))  # валидирует, что это лог ранера
+    if os.environ.get("RUN_BENCH") != "1":
+        sys.exit("Нужен RUN_BENCH=1 (защита от случайного платного запуска).")
+
+    variants = meta["variants"]
+    case_ids = meta.get("cases")
+    if not case_ids:  # старый лог без списка кейсов — берём только встречавшиеся
+        case_ids = sorted({o["case"] for o in _iter_runs(str(path))})
+        print(f"[warn] в meta нет списка кейсов — догоняю только встречавшиеся ({len(case_ids)})")
+    cases = [by_id(cid) for cid in case_ids if by_id(cid)]
+    candidate_vendors = {v["vendor"] for v in variants}
+
+    from llmbench.judges import available_judges
+    judging = isinstance(meta["judges"], list) and bool(meta["judges"])
+    judges_all = available_judges() if judging else []
+
+    runnable = [v for v in variants if os.environ.get(v["key_env"])]
+    for v in variants:
+        if v not in runnable:
+            print(f"  [skip] {v['label']}: нет {v['key_env']} — его недостающие прогоны не догоню")
+    if not runnable:
+        sys.exit("Ни одного варианта с ключом в env — нечего возобновлять.")
+
+    if meta["mode"] == "live":
+        from llmbench.mcp import preflight_live
+        platforms = {c.platform for c in cases}
+        if any(c.metrika_enabled for c in cases):
+            platforms.add(PLATFORM_YANDEX_METRIKA)
+        problems = preflight_live(platforms)
+        if problems:
+            sys.exit("Live-режим не готов (проверь ДО трат):\n  " + "\n  ".join(problems))
+
+    skip = _successful_keys(str(path))
+    run_args = argparse.Namespace(mode=meta["mode"], repeat=meta["repeat"],
+                                  concurrency=args.concurrency,
+                                  judges="panel" if judging else "off")
+    remaining = sum(1 for v in runnable for c in cases for ri in range(meta["repeat"])
+                    if (v["label"], c.id, ri) not in skip)
+    print(f"Возобновление {path}: mode={meta['mode']} · repeat={meta['repeat']} · "
+          f"уже успешно {len(skip)} · осталось ≈ {remaining} прогонов · "
+          f"судьи {'вкл' if judging else 'выкл'}")
+    if remaining:
+        # гарантируем перевод строки в конце файла — иначе дозапись слипнется с последней строкой
+        # (прерванный прогон мог оборваться без завершающего \n)
+        if path.read_bytes()[-1:] not in (b"\n", b""):
+            with path.open("a", encoding="utf-8") as f:
+                f.write("\n")
+        jsonl_lock = asyncio.Lock()
+        await _run_grid(runnable, cases, run_args, judges_all, candidate_vendors, path, jsonl_lock, skip)
+    else:
+        print("Всё уже посчитано без ошибок — просто пересобираю отчёт.")
+    _finalize(path, path.parent)
 
 
 async def main():
@@ -273,10 +396,16 @@ async def main():
                     help="каталог отчёта (дефолт results/<date>/); пишет results.ru.md + results.en.md")
     ap.add_argument("--report-from", default=None,
                     help="пересобрать отчёт (ru+en) из results/<date>/runs.jsonl без запусков (бесплатно)")
+    ap.add_argument("--resume", default=None,
+                    help="догнать прерванный прогон: results/<date>/runs.jsonl — гоняет только "
+                         "недостающие/упавшие ключи и дописывает в тот же файл (для долива баланса)")
     args = ap.parse_args()
 
     if args.report_from:
         _report_from(args.report_from, args.out)
+        return
+    if args.resume:
+        await _resume(args)
         return
 
     variants = _filter_or_die(VARIANTS, args.variants, "--variants", lambda v: v["label"])
@@ -331,7 +460,8 @@ async def main():
     jsonl_lock = asyncio.Lock()
     # baseline_desc в meta не пишем — build_md выводит его из variants (is_baseline) на нужном языке.
     meta = {"ts": ts.strftime("%Y-%m-%d %H:%M UTC"), "mode": args.mode,
-            "repeat": args.repeat, "n_cases": len(cases), "variants": runnable,
+            "repeat": args.repeat, "n_cases": len(cases), "cases": [c.id for c in cases],
+            "variants": runnable,
             "judges": [j["name"] for j in judges_all] or "—", "neutral": neutral,
             "fixture_version": FIXTURE_VERSION, "git_commit": _git_commit(),
             "jsonl": str(jsonl_path),
@@ -339,20 +469,11 @@ async def main():
     with jsonl_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps({"type": "meta", "meta": meta}, ensure_ascii=False) + "\n")
 
-    aggregates = {}
-    for v in runnable:
-        recs = await _run_variant(v, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock)
-        aggregates[v["label"]] = report.agg(recs)
-
+    await _run_grid(runnable, cases, args, judges_all, candidate_vendors, jsonl_path, jsonl_lock)
     if args.variants or args.cases:
         print(f"[note] частичный прогон (--variants/--cases): отчёт в {run_dir} содержит только "
               f"выбранные варианты/кейсы — не путать с полным гридом")
-    paths = _write_reports(aggregates, meta, run_dir)
-    total_cost = sum(a["cost_total"] for a in aggregates.values())
-    total_errors = sum(a["errors"] for a in aggregates.values())
-    print(f"\nГотово → {paths['ru']} + {paths['en']} · сырые данные: {jsonl_path} · "
-          f"потрачено ≈ ${total_cost:.2f} · ошибок {total_errors}/"
-          f"{sum(a['n_runs'] for a in aggregates.values())}")
+    _finalize(jsonl_path, run_dir)
 
 
 if __name__ == "__main__":

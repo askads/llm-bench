@@ -72,7 +72,8 @@ presence) BEFORE the first paid call.
 
 Flags: `--variants`, `--cases` (a typo in the filter is an error, not a silent full grid),
 `--repeat`, `--judges panel|neutral|off`, `--concurrency N` (parallel runs within a variant),
-`--dry-run` (shows the estimate without keys), `--out`, `--report-from <jsonl>`. The variant
+`--dry-run` (shows the estimate without keys), `--out`, `--report-from <jsonl>`,
+`--resume <jsonl>` (catch up an interrupted run). The variant
 list (model x thinking/effort/reasoning) lives in `llmbench/runner.py`; adding a model is one
 line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
 
@@ -88,6 +89,15 @@ python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 `runs.jsonl` is gitignored (raw data), the `.md` reports are in VCS. Top-3, prose and takeaways
 are added by hand on top of the generated grid in the same dated folder. A second run on the
 same day doesn't clobber the first (a time suffix is added on a date collision).
+
+**Interrupted (out of credits, Ctrl-C)?** Completed runs are already in `runs.jsonl` (written
+line-by-line as they finish) — top up and catch up the rest, paying only for what's left:
+```bash
+RUN_BENCH=1 …keys… python -m llmbench.runner --resume results/2026-07-03/runs.jsonl
+```
+`--resume` skips already-successful `(variant, case, repeat)` keys, runs only the failed/missing
+ones, appends to the same file, and rebuilds the report (on duplicates, success wins). You can
+also add a key (e.g. `OPENAI_API_KEY`) and backfill variants skipped in the original run.
 
 ## How Score is computed
 

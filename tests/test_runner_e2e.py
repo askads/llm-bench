@@ -4,6 +4,7 @@
 неутечку нонса (R7), строгие фильтры (R12), round-trip JSONL → отчёт (R13), учёт
 стоимости упавших попыток (R28).
 """
+import argparse
 import asyncio
 import json
 
@@ -113,3 +114,68 @@ def test_jsonl_roundtrip_report_from(tmp_path, monkeypatch):
     assert "Opus 4.8" in ru and "abc1234" in ru and "Все варианты" in ru and "оговорка" in ru
     assert "Opus 4.8" in en and "All variants" in en and "caveat" in en
     assert "average of the four" not in en.lower()  # старое ложное определение Score ушло
+
+
+def _resume_meta(jsonl):
+    v = {"label": "X", "vendor": "anthropic", "engine": "anthropic", "model": "claude-sonnet-4-6",
+         "base_url": "", "key_env": "ANTHROPIC_API_KEY", "thinking": "disabled", "effort": "high",
+         "reasoning_effort": None, "is_baseline": True}
+    return {"ts": "2026-07-03 12:00 UTC", "mode": "fixed", "repeat": 2, "n_cases": 1,
+            "cases": ["numeric_cpc_poisk"], "variants": [v], "judges": "—", "neutral": [],
+            "fixture_version": "2026-07-03", "git_commit": "abc1234", "jsonl": str(jsonl),
+            "caveats": {"ru": ["c"], "en": ["c"]}}
+
+
+def _run_line(err):
+    ok = err is None
+    rec = {"case": "numeric_cpc_poisk", "dimension": "numeric", "turn_type": "single",
+           "tool": 5.0 if ok else None, "numeric": 5.0 if ok else None, "has_golden": True,
+           "soft_quality": None, "soft_russian": None, "cost": 0.01, "cost_wasted": 0.0,
+           "retried": False, "error": err, "composite": 5.0 if ok else None}
+    return {"type": "run", "variant": "X", "case": "numeric_cpc_poisk", "repeat": None,
+            "rec": rec, "answer": "", "tool_trace": [], "usage": {}}
+
+
+def test_resume_skips_successful_and_reruns_errored(tmp_path, monkeypatch):
+    """--resume: успешный ключ (r0) не трогаем, упавший (r1) догоняем; дедуп оставляет успех."""
+    jsonl = tmp_path / "runs.jsonl"
+    ok, bad = _run_line(None), _run_line("APIError: 400 credit balance too low")
+    ok["repeat"], bad["repeat"] = 0, 1
+    lines = [{"type": "meta", "meta": _resume_meta(jsonl)}, ok, bad]
+    jsonl.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in lines), encoding="utf-8")
+
+    calls = []
+
+    async def fake_anthropic(history, **kw):
+        calls.append(1)
+        return {"answer": "восстановлено", "tool_trace": [{"name": "get_statistics", "input": {}, "is_error": False}],
+                "input_tokens": 100, "cache_read_tokens": 0, "cache_write_tokens": 0, "tokens_out": 10, "error": None}
+
+    monkeypatch.setattr(runner, "run_anthropic", fake_anthropic)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setenv("RUN_BENCH", "1")
+
+    asyncio.run(runner._resume(argparse.Namespace(resume=str(jsonl), concurrency=1)))
+
+    assert len(calls) == 1                       # догнали ровно один упавший ключ, r0 не трогали
+    meta, aggs = runner._load_runs(str(jsonl))   # дедуп: старая ошибка r1 схлопнута с новым успехом
+    assert aggs["X"]["n_runs"] == 2 and aggs["X"]["errors"] == 0
+    assert (tmp_path / "results.ru.md").exists() and (tmp_path / "results.en.md").exists()
+
+
+def test_resume_all_done_only_rebuilds_report(tmp_path, monkeypatch):
+    """Если всё уже успешно — --resume не делает платных вызовов, только пересобирает отчёт."""
+    jsonl = tmp_path / "runs.jsonl"
+    r0, r1 = _run_line(None), _run_line(None)
+    r0["repeat"], r1["repeat"] = 0, 1
+    lines = [{"type": "meta", "meta": _resume_meta(jsonl)}, r0, r1]
+    jsonl.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in lines), encoding="utf-8")
+
+    async def must_not_call(history, **kw):
+        raise AssertionError("не должно быть платных вызовов — всё уже посчитано")
+
+    monkeypatch.setattr(runner, "run_anthropic", must_not_call)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setenv("RUN_BENCH", "1")
+    asyncio.run(runner._resume(argparse.Namespace(resume=str(jsonl), concurrency=1)))
+    assert (tmp_path / "results.ru.md").exists()
