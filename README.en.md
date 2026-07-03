@@ -41,7 +41,7 @@ llmbench/
   report.py     # record aggregation, Stability/Score/Pareto, markdown build (CI-tested)
   runner.py     # variant grid x cases x repeat, JSONL persistence, report
 tests/          # offline self-test: scoring + aggregation + runner pipeline (all in CI)
-results/        # per-date folders: results.ru.md + results.en.md (in VCS) + raw runs.jsonl (gitignored)
+results/        # per-date folders: results.ru.md + results.en.md + raw runs.jsonl (all in VCS for fixed)
 ```
 
 ## Running
@@ -86,9 +86,11 @@ are rebuilt from it for free, with no repeat model calls —
 ```bash
 python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 ```
-`runs.jsonl` is gitignored (raw data), the `.md` reports are in VCS. Top-3, prose and takeaways
-are added by hand on top of the generated grid in the same dated folder. A second run on the
-same day doesn't clobber the first (a time suffix is added on a date collision).
+`runs.jsonl` is **committed for fixed runs** (fake account, no private data; ~230 KB packed).
+⚠️ **Live runs contain real account data — don't commit their `runs.jsonl`** (keep local / in a
+private S3). The `.md` reports are in VCS. Top-3, prose and takeaways are added by hand on top of
+the generated grid in the same dated folder. A second run on the same day doesn't clobber the
+first (a time suffix is added on a date collision).
 
 **Interrupted (out of credits, Ctrl-C)?** Completed runs are already in `runs.jsonl` (written
 line-by-line as they finish) — top up and catch up the rest, paying only for what's left:
@@ -111,9 +113,12 @@ differing difficulty).
 
 ## Latest run results
 
-The latest run is in the newest dated folder `results/<date>/` (`results.ru.md` + English
-`results.en.md`) — curated summary + Pareto frontier. ⚠️ The numbers in `results/2026-06-29/`
-predate the scoring/fixture fixes (see `REVIEW.md`); regenerate with a fresh run.
+**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a
+fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed
+scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best
+quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the
+quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is
+historical, before the scoring fixes.
 
 ## Known limitations
 

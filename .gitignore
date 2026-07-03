@@ -8,6 +8,7 @@ node_modules/
 .pytest_cache/
 .DS_Store
 
-# Сырые per-run данные прогонов (отчёты results.ru/en.md в дата-папках — под VCS).
-results/**/runs.jsonl
-results/runs-*.jsonl
+# Сырьё прогонов results/<date>/runs.jsonl — теперь ПОД VCS (для fixed-режима: фейк-кабинет,
+# приватных данных нет; ~230 КБ в паке — воспроизводит отчёт через --report-from).
+# ВНИМАНИЕ: live-прогоны содержат данные РЕАЛЬНОГО кабинета — такие runs.jsonl в репозиторий НЕ коммить
+# (держи локально или в приватном S3).
