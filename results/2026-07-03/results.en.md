@@ -8,32 +8,17 @@ _Run from 2026-07-03 12:39 UTC × **16 variants** (model × thinking/effort) × 
 
 ## Terms (how to read the table)
 
-- **Accuracy** (0–5) — numeric correctness: are CTR/CPC/CPA/spend computed right, nothing made
-  up, and are the numbers attributed to the right campaign (entity anchoring). **In code**
-  (deterministic).
-- **Tools Use** (0–5) — tool correctness: called the right tools (successfully) in the right
-  order, nothing extra/forbidden. **Code**.
-- **Edge Cases** (0–5) — behavior in edge cases (empty report, refusing to change a bid,
-  clarifying). **LLM judges** — they also score runs with tool violations.
+- **Accuracy** (0–5) — numeric correctness: are CTR/CPC/CPA/spend computed right, nothing made up, and are the numbers attributed to the right campaign (entity anchoring). **In code** (deterministic).
+- **Tools Use** (0–5) — tool correctness: called the right tools (successfully) in the right order, nothing extra/forbidden. **Code**.
+- **Edge Cases** (0–5) — behavior in edge cases (empty report, refusing to change a bid, clarifying). **LLM judges** — they also score runs with tool violations.
 - **Lang quality** (0–5) — naturalness and clarity of the Russian. Judges.
-- **Score** (0–5) — a run's overall score = mean of the available components: Tools Use
-  (always), Accuracy (if the case has golden facts), Edge Cases/Lang quality (if judges ran).
-  The component set depends on the case, so Score is comparable across variants (everyone runs
-  the same cases) but is NOT equal to the mean of the four left columns. Failed runs are
-  excluded from Score — see Err.
-- **Cost per Answer** — mean cost of a successful run (USD); **Score per USD (s/m)** — "quality
-  per dollar" (Score ÷ cost) for single-/multi-step dialogs; higher = better value.
-- **Stability** (0–5) — `5 − mean spread (σ) of Score between repeats of the same case`:
-  higher = more stable. Meaningful at repeat ≥ 2.
-- **Err** — `failed/all runs` (API errors, token-limit truncation); suffix `·NR` — N runs
-  succeeded only after a retry with the same config. Failed runs are excluded from all metrics,
-  but their cost is included in the total run cost.
-- **Thinking** — whether the model thinks before answering: `adaptive` (Claude/GLM),
-  `reasoning` (GPT-5), `no`.
-- **Effort** — the "effort" budget per answer (`low/medium/high/max`); separate from thinking
-  (weak effect when thinking is off). Not configurable for GLM (`—`).
-- **⭐** — **best quality/price balance**: a variant that can't be beaten — no other is both
-  better and cheaper. _(In optimization — the "Pareto frontier".)_
+- **Score** (0–5) — a run's overall score = mean of the available components: Tools Use (always), Accuracy (if the case has golden facts), Edge Cases/Lang quality (if judges ran). The component set depends on the case, so Score is comparable across variants (everyone runs the same cases) but is NOT equal to the mean of the four left columns. Failed runs are excluded from Score — see Err.
+- **Cost per Answer** — mean cost of a successful run (USD); **Score per USD (s/m)** — "quality per dollar" (Score ÷ cost) for single-/multi-step dialogs; higher = better value.
+- **Stability** (0–5) — `5 − mean spread (σ) of Score between repeats of the same case`: higher = more stable. Meaningful at repeat ≥ 2.
+- **Err** — `failed/all runs` (API errors, token-limit truncation); suffix `·NR` — N runs succeeded only after a retry with the same config. Failed runs are excluded from all metrics, but their cost is included in the total run cost.
+- **Thinking** — whether the model thinks before answering: `adaptive` (Claude/GLM), `reasoning` (GPT-5), `no`.
+- **Effort** — the "effort" budget per answer (`low/medium/high/max`); separate from thinking (weak effect when thinking is off). Not configurable for GLM (`—`).
+- **⭐** — **best quality/price balance**: a variant that can't be beaten — no other is both better and cheaper. _(In optimization — the "Pareto frontier".)_
 
 ## Top-3 (best quality/price balance)
 

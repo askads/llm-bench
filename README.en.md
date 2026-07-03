@@ -2,18 +2,13 @@
 
 [🇷🇺 Русский](README.md) · **🇬🇧 English**
 
-A standalone harness to **run models against askads' MCP tools** (Yandex Direct / VK Ads /
-Metrica) and **benchmark them against each other** on our domain (Russian ad analytics +
-multi-step tool use) rather than on unrelated coding benchmarks.
+A standalone harness to **run models against askads' MCP tools** (Yandex Direct / VK Ads / Metrica) and **benchmark them against each other** on our domain (Russian ad analytics + multi-step tool use) rather than on unrelated coding benchmarks.
 
 Two modes:
-- **`fixed`** — deterministic fixtures (a frozen fake ad account served as `tool_result`).
-  Reproducible model comparison; runs in CI without network or account tokens.
-- **`live`** — spawns REAL MCP servers over stdio (`mcp-yandex-direct`, etc.) with tokens
-  from env. Integration tests of the tools themselves against a live account.
+- **`fixed`** — deterministic fixtures (a frozen fake ad account served as `tool_result`). Reproducible model comparison; runs in CI without network or account tokens.
+- **`live`** — spawns REAL MCP servers over stdio (`mcp-yandex-direct`, etc.) with tokens from env. Integration tests of the tools themselves against a live account.
 
-The engine and MCP client are **decoupled from askads** (extracted into `llmbench/`), so the
-repository is self-contained.
+The engine and MCP client are **decoupled from askads** (extracted into `llmbench/`), so the repository is self-contained.
 
 ## Terms
 
@@ -33,12 +28,7 @@ How to read the results table:
 
 ## Latest run results
 
-**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a
-fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed
-scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best
-quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the
-quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is
-historical, before the scoring fixes.
+**[`results/2026-07-03/`](results/2026-07-03/results.en.md)** (+ Russian `results.ru.md`) — a fresh full grid (16 variants × 9 cases × 3 repeats = 432 runs, 0 errors, ≈ $18) on the fixed scoring: Top-3 + Pareto frontier + takeaways. In short: **GLM-4.6 without thinking** is the best quality/price, **GPT-4.1** is surprisingly strong and cheap, **Opus 4.8 (adaptive/high)** is the quality ceiling; **Sonnet (production)** drops on edge cases. The `results/2026-06-29/` run is historical, before the scoring fixes.
 
 ## What is scored, and by whom
 
@@ -116,32 +106,21 @@ Runner flags:
 | `--report-from <jsonl>` | rebuild the report (ru+en) from `runs.jsonl` for free |
 | `--resume <jsonl>` | catch up an interrupted run (only missing/failed keys) |
 
-The variant list (model x thinking/effort/reasoning) lives in `llmbench/runner.py`; adding a
-model is one line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
+The variant list (model x thinking/effort/reasoning) lives in `llmbench/runner.py`; adding a model is one line (don't forget the rate in `core.MODEL_RATES`, or the runner warns).
 
 ## Artifacts and re-scoring
 
-Every run lands in a dated folder **`results/<date>/`**: the raw `runs.jsonl` (one record per
-run — answer, tool trace, usage, all scores, errors) and the bilingual generated report
-`results.ru.md` + `results.en.md`. `runs.jsonl` is the source of truth: both report versions
-are rebuilt from it for free, with no repeat model calls —
+Every run lands in a dated folder **`results/<date>/`**: the raw `runs.jsonl` (one record per run — answer, tool trace, usage, all scores, errors) and the bilingual generated report `results.ru.md` + `results.en.md`. `runs.jsonl` is the source of truth: both report versions are rebuilt from it for free, with no repeat model calls —
 ```bash
 python -m llmbench.runner --report-from results/2026-07-03/runs.jsonl
 ```
-`runs.jsonl` is **committed for fixed runs** (fake account, no private data; ~230 KB packed).
-⚠️ **Live runs contain real account data — don't commit their `runs.jsonl`** (keep local / in a
-private S3). The `.md` reports are in VCS. Top-3, prose and takeaways are added by hand on top of
-the generated grid in the same dated folder. A second run on the same day doesn't clobber the
-first (a time suffix is added on a date collision).
+`runs.jsonl` is **committed for fixed runs** (fake account, no private data; ~230 KB packed). ⚠️ **Live runs contain real account data — don't commit their `runs.jsonl`** (keep local / in a private S3). The `.md` reports are in VCS. Top-3, prose and takeaways are added by hand on top of the generated grid in the same dated folder. A second run on the same day doesn't clobber the first (a time suffix is added on a date collision).
 
-**Interrupted (out of credits, Ctrl-C)?** Completed runs are already in `runs.jsonl` (written
-line-by-line as they finish) — top up and catch up the rest, paying only for what's left:
+**Interrupted (out of credits, Ctrl-C)?** Completed runs are already in `runs.jsonl` (written line-by-line as they finish) — top up and catch up the rest, paying only for what's left:
 ```bash
 RUN_BENCH=1 …keys… python -m llmbench.runner --resume results/2026-07-03/runs.jsonl
 ```
-`--resume` skips already-successful `(variant, case, repeat)` keys, runs only the failed/missing
-ones, appends to the same file, and rebuilds the report (on duplicates, success wins). You can
-also add a key (e.g. `OPENAI_API_KEY`) and backfill variants skipped in the original run.
+`--resume` skips already-successful `(variant, case, repeat)` keys, runs only the failed/missing ones, appends to the same file, and rebuilds the report (on duplicates, success wins). You can also add a key (e.g. `OPENAI_API_KEY`) and backfill variants skipped in the original run.
 
 ## How Score is computed
 
@@ -158,10 +137,8 @@ The component set depends on the case, so:
 
 ## Known limitations
 
-- **Case ceiling:** top models max out at 5.0 on Tool/Numeric → "parity" here means "both ace
-  THESE tasks". Harder cases are needed to truly separate quality.
-- **Judges are secondary:** without a neutral vendor, the primary soft score is the panel mean
-  (advisory, self-preference possible). The comparison rests on the key metrics.
+- **Case ceiling:** top models max out at 5.0 on Tool/Numeric → "parity" here means "both ace THESE tasks". Harder cases are needed to truly separate quality.
+- **Judges are secondary:** without a neutral vendor, the primary soft score is the panel mean (advisory, self-preference possible). The comparison rests on the key metrics.
 - Model rates and cache multipliers are from price lists; verify against billing.
 - `glm-5`/`gpt-5`: availability ≠ identity of the expected model — verify.
 - `--repeat` is a coarse noise flag; "wrong number == missing" in numeric is a simplification.
