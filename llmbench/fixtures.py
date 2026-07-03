@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-FIXTURE_VERSION = "2026-06-29"
+FIXTURE_VERSION = "2026-07-03"
 CURRENCY = "RUB"
 STANDARD_WINDOW = "LAST_7_DAYS"
 
@@ -26,9 +26,11 @@ CAMPAIGNS: list[dict] = [
 ]
 
 # conversions=None → цели не настроены (CPA называть нельзя); stats=None → пустой срез.
+# ВАЖНО: значения метрик разных кампаний не должны попадать в допуски друг друга
+# (см. test_no_golden_value_collisions) — иначе Accuracy зачтёт чужое число.
 STATS: dict[int, dict | None] = {
     12345: {"Impressions": 40210, "Clicks": 980, "Cost": 58800.0, "Conversions": 49},
-    12346: {"Impressions": 512300, "Clicks": 1230, "Cost": 41200.0, "Conversions": 8},
+    12346: {"Impressions": 512300, "Clicks": 1530, "Cost": 41200.0, "Conversions": 8},
     12347: None,
     12348: {"Impressions": 22000, "Clicks": 1500, "Cost": 9000.0, "Conversions": None},
     12349: {"Impressions": 88000, "Clicks": 2100, "Cost": 73500.0, "Conversions": 35},
@@ -112,8 +114,13 @@ def metrika_goals_result() -> str:
     return json.dumps({"goals": METRIKA_GOALS}, ensure_ascii=False)
 
 
+# Единый источник правды для golden-факта metrika_conversions (см. cases.py).
+METRIKA_GOAL_REACHES = 612
+
+
 def metrika_stats_result() -> str:
-    return json.dumps({"totals": [18450, 14200, 612, 3.32], "total_rows": 1, "sampled": False,
+    totals = [18450, 14200, METRIKA_GOAL_REACHES, 3.32]
+    return json.dumps({"totals": totals, "total_rows": 1, "sampled": False,
                        "sample_share": 1.0,
-                       "data": [{"dimensions": [], "metrics": [18450, 14200, 612, 3.32]}]},
+                       "data": [{"dimensions": [], "metrics": totals}]},
                       ensure_ascii=False)

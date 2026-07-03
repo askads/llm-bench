@@ -2,6 +2,13 @@
 
 [🇷🇺 Русский](model-comparison-grid.ru.md) · 🇬🇧 English
 
+> ⚠️ **Numbers are stale (2026-06-29 run).** Produced BEFORE the scoring/fixture fixes of
+> 2026-07-03 (see `../REVIEW.md`): Accuracy entity-anchoring, the Stability formula (now σ
+> between repeats within a case), GPT cache multipliers, and some fixtures all changed. These
+> values were NOT recomputed — regenerate with a fresh run. The "Score = average of the four
+> metrics" definition below is also imprecise: Score is the mean of the _available_ components
+> (Lang quality is included; the set depends on the case).
+
 **16 combinations** (model + settings) × **9 test cases** × **2 repeats** = 288 answers. All models received the same data — a dump of a test ad account.
 
 All models answered the same questions about a Yandex Direct ad account and used the same set of tools. **Tools Use** and **Accuracy** are checked in code (identically and precisely for all); **Edge Cases** and **Lang quality** are scored by LLM judges.

@@ -3,7 +3,10 @@
 
 Нейтральность: первичный субъективный балл — среднее судей, чей вендор ∉ кандидатам. Каждый
 судья — свой клиент из фиксированных кредов (изоляция). Доступность судьи — по наличию ключа.
-"""
+
+Детерминизм: temperature=0 везде, где провайдер это позволяет (GPT non-reasoning, GLM,
+Gemini). Claude-судья на Opus 4.8 сэмплинг-параметры не принимает (400) — не отправляем.
+Шкала оценок 0–5 — та же, что у кодовых метрик (пол = 0, а не 1)."""
 from __future__ import annotations
 
 import asyncio
@@ -19,6 +22,9 @@ JUDGE_CLAUDE_MODEL = "claude-opus-4-8"
 JUDGE_GLM_MODEL = "glm-4.6"
 JUDGE_GPT_MODEL = os.environ.get("BENCH_GPT_JUDGE_MODEL", "gpt-4.1")
 JUDGE_GEMINI_MODEL = os.environ.get("BENCH_GEMINI_JUDGE_MODEL", "gemini-2.5-flash")
+
+# Reasoning-модели OpenAI не принимают temperature и требуют запас на внутренние токены.
+_OPENAI_REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 
 
 def available_judges() -> list[dict]:
@@ -50,30 +56,42 @@ def _prompt(question, rubric, answer):
     return ("Ты — строгий судья ответов ассистента-аналитика Яндекс Директа. Оцени ТОЛЬКО "
             "качество по рубрике и язык — НЕ проверяй арифметику.\n\n"
             f"Вопрос:\n{question}\n\nРубрика:\n{rubric}\n\nОтвет:\n{answer or '(пустой ответ)'}\n\n"
-            "Оцени 1–5 (5 — лучший): quality (соответствие рубрике: интерпретация, корректность "
-            "выводов, поведение в краевом случае, без выдуманных причин); russian (естественность и "
+            "Оцени 0–5 (5 — лучший, 0 — полностью мимо): quality (соответствие рубрике: "
+            "интерпретация, корректность выводов, поведение в краевом случае, без выдуманных "
+            "причин); russian (естественность и "
             'ясность). Верни СТРОГО JSON без markdown: {"quality":N,"russian":N,"note":"кратко"}')
 
 
 async def _call(judge, prompt):
     client = _client_for(judge)
     if judge["kind"] == "openai":
-        resp = await retry_call(lambda: client.chat.completions.create(
-            model=judge["model"], max_tokens=300, messages=[{"role": "user", "content": prompt}]))
+        reasoning = judge["model"].startswith(_OPENAI_REASONING_PREFIXES)
+        kw = {"model": judge["model"], "messages": [{"role": "user", "content": prompt}],
+              # у reasoning-моделей внутренние токены входят в лимит — даём запас
+              "max_completion_tokens": 2000 if reasoning else 300}
+        if not reasoning:
+            kw["temperature"] = 0
+        resp = await retry_call(lambda: client.chat.completions.create(**kw))
         return resp.choices[0].message.content or ""
     if judge["kind"] == "gemini":
-        resp = await retry_call(lambda: client.aio.models.generate_content(model=judge["model"], contents=prompt))
+        resp = await retry_call(lambda: client.aio.models.generate_content(
+            model=judge["model"], contents=prompt, config={"temperature": 0}))
         return resp.text or ""
-    resp = await retry_call(lambda: client.messages.create(
-        model=judge["model"], max_tokens=400, messages=[{"role": "user", "content": prompt}]))
+    kw = {"model": judge["model"], "max_tokens": 400,
+          "messages": [{"role": "user", "content": prompt}]}
+    if judge["kind"] == "anthropic-glm":
+        kw["temperature"] = 0  # Opus 4.8 сэмплинг-параметры отвергает — только для GLM
+    resp = await retry_call(lambda: client.messages.create(**kw))
     return "".join(getattr(b, "text", "") or "" for b in resp.content if getattr(b, "type", "") == "text")
 
 
 def _num(v):
+    """float в допустимой шкале 0–5; всё остальное (в т.ч. NaN, 45, '—') → None."""
     try:
-        return float(v)
+        f = float(v)
     except (TypeError, ValueError):
         return None
+    return f if 0.0 <= f <= 5.0 else None
 
 
 async def _judge_one(judge, question, rubric, answer):
