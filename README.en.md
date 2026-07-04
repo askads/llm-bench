@@ -72,6 +72,8 @@ results/        # per-date folders: results.ru.md + results.en.md + raw runs.jso
 
 ## Running
 
+Requires Python ≥ 3.10 (CI uses 3.11).
+
 Offline self-test (no network/money; CI):
 ```bash
 pip install -r requirements-dev.txt
