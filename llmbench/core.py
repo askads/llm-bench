@@ -35,7 +35,7 @@ def is_allowed(name: str) -> bool:
 def to_anthropic_tools(mcp_tools, allow=READ_ONLY_TOOLS, prefix: str = "") -> list[dict]:
     allowed = sorted((t for t in mcp_tools if t.name in allow), key=lambda t: t.name)
     return [{"name": prefix + t.name, "description": t.description or "",
-             "input_schema": t.inputSchema or {"type": "object", "properties": {}}} for t in allowed]
+             "input_schema": t.input_schema or {"type": "object", "properties": {}}} for t in allowed]
 
 
 def to_metrika_anthropic_tools(mcp_tools) -> list[dict]:
@@ -46,7 +46,7 @@ def to_openai_tools(mcp_tools, allow=READ_ONLY_TOOLS, prefix: str = "") -> list[
     allowed = sorted((t for t in mcp_tools if t.name in allow), key=lambda t: t.name)
     return [{"type": "function", "function": {
         "name": prefix + t.name, "description": t.description or "",
-        "parameters": t.inputSchema or {"type": "object", "properties": {}}}} for t in allowed]
+        "parameters": t.input_schema or {"type": "object", "properties": {}}}} for t in allowed]
 
 
 # --- Бюджеты/дефолты движка ---

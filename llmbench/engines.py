@@ -88,7 +88,7 @@ async def _exec_tool(routes, name, args):
     except asyncio.TimeoutError:
         return f"Инструмент '{real}' не ответил за {MCP_TOOL_CALL_TIMEOUT_S}с.", True
     content = "\n".join(getattr(b, "text", "") or "" for b in result.content)
-    is_err = bool(result.isError)
+    is_err = bool(result.is_error)
     # Клампим и ошибочные результаты: огромный error-payload из live-MCP не должен
     # раздувать контекст и стоимость.
     content = clamp_tool_result(content, name=real, budget_chars=TOOL_RESULT_CHAR_BUDGET)

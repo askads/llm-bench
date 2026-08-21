@@ -4,7 +4,7 @@
           токены из env. Так гоняем модели против НАСТОЯЩИХ тулов.
 - fixed — FakeMCPSession на замороженных фикстурах (детерминированный model-бенч, CI-safe).
 
-Оба дают одинаковый контракт: `list_tools() -> .tools`, `call_tool(name, args) -> .content/.isError`.
+Оба дают одинаковый контракт: `list_tools() -> .tools`, `call_tool(name, args) -> .content/.is_error`.
 Движок (engines.py) принимает фабрику сессий и не знает, какой режим под капотом.
 """
 from __future__ import annotations
@@ -83,7 +83,7 @@ async def live_session(platform: str):
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             init = await session.initialize()
-            session.server_version = getattr(getattr(init, "serverInfo", None), "version", None)
+            session.server_version = getattr(getattr(init, "server_info", None), "version", None)
             yield session
 
 
@@ -92,17 +92,17 @@ SERVER_VERSION = "fake-bench-1.0"
 
 _DIRECT_TOOLS = [
     Tool(name="get_account_info", description="Информация о рекламном аккаунте.",
-         inputSchema={"type": "object", "properties": {}}),
+         input_schema={"type": "object", "properties": {}}),
     Tool(name="list_campaigns", description="Список кампаний (Id, Name, Type, State, Status).",
-         inputSchema={"type": "object", "properties": {"ids": {"type": "array", "items": {"type": "integer"}}}}),
+         input_schema={"type": "object", "properties": {"ids": {"type": "array", "items": {"type": "integer"}}}}),
     Tool(name="list_ad_groups", description="Группы объявлений кампаний.",
-         inputSchema={"type": "object", "properties": {"campaignIds": {"type": "array", "items": {"type": "integer"}}}}),
+         input_schema={"type": "object", "properties": {"campaignIds": {"type": "array", "items": {"type": "integer"}}}}),
     Tool(name="list_keywords", description="Ключевые слова кампаний/групп.",
-         inputSchema={"type": "object", "properties": {"campaignIds": {"type": "array", "items": {"type": "integer"}}}}),
+         input_schema={"type": "object", "properties": {"campaignIds": {"type": "array", "items": {"type": "integer"}}}}),
     Tool(name="get_regions", description="Справочник гео-регионов.",
-         inputSchema={"type": "object", "properties": {"query": {"type": "string"}}}),
+         input_schema={"type": "object", "properties": {"query": {"type": "string"}}}),
     Tool(name="get_statistics", description="Статистика кампаний за период: показы, клики, расход, CTR, конверсии.",
-         inputSchema={"type": "object", "properties": {
+         input_schema={"type": "object", "properties": {
              "reportType": {"type": "string", "enum": ["ACCOUNT_PERFORMANCE_REPORT", "CAMPAIGN_PERFORMANCE_REPORT", "SEARCH_QUERY_PERFORMANCE_REPORT"]},
              "dateRangeType": {"type": "string", "enum": ["TODAY", "YESTERDAY", "LAST_7_DAYS", "LAST_30_DAYS", "THIS_MONTH", "LAST_MONTH", "ALL_TIME", "CUSTOM_DATE"]},
              "campaignIds": {"type": "array", "items": {"type": "integer"}},
@@ -110,11 +110,11 @@ _DIRECT_TOOLS = [
 ]
 _METRIKA_TOOLS = [
     Tool(name="list_counters", description="Счётчики Яндекс Метрики.",
-         inputSchema={"type": "object", "properties": {"search": {"type": "string"}}}),
+         input_schema={"type": "object", "properties": {"search": {"type": "string"}}}),
     Tool(name="list_goals", description="Цели/конверсии счётчика.",
-         inputSchema={"type": "object", "properties": {"counterId": {"type": "integer"}}}),
+         input_schema={"type": "object", "properties": {"counterId": {"type": "integer"}}}),
     Tool(name="get_statistics", description="Веб-аналитика: визиты, пользователи, конверсии по целям.",
-         inputSchema={"type": "object", "properties": {"counterId": {"type": "integer"},
+         input_schema={"type": "object", "properties": {"counterId": {"type": "integer"},
                       "metrics": {"type": "array", "items": {"type": "string"}}}}),
 ]
 
@@ -173,7 +173,7 @@ class FakeMCPSession:
     async def call_tool(self, name, arguments=None):
         args = arguments or {}
         text = _resolve_metrika(name, args) if self._metrika else _resolve_direct(name, args)
-        return CallToolResult(content=[TextContent(type="text", text=text)], isError=text.startswith("ERROR:"))
+        return CallToolResult(content=[TextContent(type="text", text=text)], is_error=text.startswith("ERROR:"))
 
 
 @asynccontextmanager
